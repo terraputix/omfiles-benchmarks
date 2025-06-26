@@ -2,7 +2,17 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Tuple
 
-from .stats import BenchmarkStats
+
+@dataclass
+class BenchmarkStats:
+    mean: float
+    std: float
+    min: float
+    max: float
+    cpu_mean: float
+    cpu_std: float
+    memory_usage: float
+    file_size: float = 0
 
 
 @dataclass

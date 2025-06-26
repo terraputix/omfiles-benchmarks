@@ -25,7 +25,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--iterations", type=int, default=10, help="Number of iterations for each test")
 
-    parser.add_argument("--plot-only", type=bool, default=False, help="Plot results without running benchmarks")
+    parser.add_argument("--plot-only", type=bool, default=False, help="Plot latest results without running benchmarks")
     return parser.parse_args()
 
 

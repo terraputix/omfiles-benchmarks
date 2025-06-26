@@ -2,23 +2,12 @@ import gc
 import statistics
 import time
 import tracemalloc
-from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Callable, List, NamedTuple, TypeVar
 
+from .schemas import BenchmarkStats
+
 T = TypeVar("T")
-
-
-@dataclass
-class BenchmarkStats:
-    mean: float
-    std: float
-    min: float
-    max: float
-    cpu_mean: float
-    cpu_std: float
-    memory_usage: float
-    file_size: float = 0
 
 
 class MeasurementResult(NamedTuple):

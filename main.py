@@ -1,5 +1,6 @@
 from argparse import Namespace
 
+import polars as pl
 from zarr.core.buffer import NDArrayLike
 
 from helpers.args import parse_args
@@ -104,18 +105,19 @@ def main():
         current_df = results_manager.load_last_results()
 
     # Display current results
-    print("\n" + "=" * 80)
-    print("CURRENT BENCHMARK RESULTS")
-    print("=" * 80)
-    summary_df = results_manager.get_current_results_summary(current_df)
-    print(summary_df)
+    with pl.Config(tbl_cols=-1, tbl_rows=-1):  # display all columns and rows
+        print("\n" + "=" * 80)
+        print("CURRENT BENCHMARK RESULTS")
+        print("=" * 80)
+        summary_df = results_manager.get_current_results_summary(current_df)
+        print(summary_df)
 
-    # Show performance comparison
-    print("\n" + "=" * 80)
-    print("PERFORMANCE COMPARISON")
-    print("=" * 80)
-    comparison_df = results_manager.get_performance_comparison(current_df)
-    print(comparison_df)
+        # Show performance comparison
+        print("\n" + "=" * 80)
+        print("PERFORMANCE COMPARISON")
+        print("=" * 80)
+        comparison_df = results_manager.get_performance_comparison(current_df)
+        print(comparison_df)
 
     # Create visualizations
     create_benchmark_charts(current_df)

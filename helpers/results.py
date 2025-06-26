@@ -3,8 +3,7 @@ from typing import Dict, List
 
 import polars as pl
 
-from .schemas import BenchmarkRecord, RunMetadata
-from .stats import BenchmarkStats
+from .schemas import BenchmarkRecord, BenchmarkStats, RunMetadata
 
 
 class BenchmarkResultsManager:
@@ -21,7 +20,6 @@ class BenchmarkResultsManager:
     ) -> pl.DataFrame:
         """Save benchmark results to CSV and return DataFrame for display"""
 
-        # Convert to BenchmarkRecord objects
         records: List[BenchmarkRecord] = []
 
         # Process write results
