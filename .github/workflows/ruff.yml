@@ -17,7 +17,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "**/uv.lock"
 
-      - name: Set up Python with uv
+      - name: Set up Python
         run: uv python install
 
       - name: Run Ruff linter
