@@ -1,12 +1,15 @@
 {
   "languages": {
     "Python": {
-      "language_servers": ["ruff"],
+      "language_servers": ["pyright", "ruff"],
       "format_on_save": "on",
       "formatter": [
         {
-          "code_actions": {
-            "source.fixAll.ruff": true
+          "language_server": {
+            "name": "ruff",
+            "code_actions": {
+              "source.fixAll.ruff": true
+            }
           }
         }
       ]

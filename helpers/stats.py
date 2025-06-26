@@ -4,7 +4,7 @@ import time
 import tracemalloc
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Callable, Dict, List, NamedTuple, TypeVar
+from typing import Any, Callable, List, NamedTuple, TypeVar
 
 T = TypeVar("T")
 
@@ -79,19 +79,6 @@ def run_multiple_benchmarks(func: Callable[..., MeasurementResult], iterations: 
         cpu_std=statistics.stdev(cpu_times) if len(cpu_times) > 1 else 0,
         memory_usage=statistics.mean(memory_usages),
     )
-
-
-def print_write_benchmark_results(results: Dict[str, BenchmarkStats]) -> None:
-    for fmt, result in results.items():
-        print(f"\n{fmt} Write Results:")
-        _print_benchmark_stats(result)
-        print(f"  File Size: {result.file_size} B")
-
-
-def print_read_benchmark_results(results: Dict[str, BenchmarkStats]) -> None:
-    for fmt, result in results.items():
-        print(f"\n{fmt} Read Results:")
-        _print_benchmark_stats(result)
 
 
 def _print_benchmark_stats(stats: BenchmarkStats) -> None:

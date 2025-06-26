@@ -12,6 +12,10 @@ dependencies = [
     "zarr",
     "zarrs",
     "tensorstore",
+    "polars",
+    "altair",
+    "vl-convert-python",
+    "pillow"
 ]
 
 [dependency-groups]
