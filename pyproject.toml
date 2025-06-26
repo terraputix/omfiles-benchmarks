@@ -1,0 +1,15 @@
+[project]
+name = "omfiles-benchmarks"
+version = "0.1.0"
+description = "Benchmark omfiles against other multidimensional array file formats"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "omfiles@git+https://github.com/open-meteo/python-omfiles.git#egg=main",
+    "hidefix",
+    "h5py",
+    "netCDF4",
+    "zarr",
+    "zarrs",
+    "tensorstore",
+]
