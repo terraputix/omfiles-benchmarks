@@ -1,5 +1,7 @@
 from argparse import Namespace
 
+from zarr.core.buffer import NDArrayLike
+
 from helpers.args import parse_args
 from helpers.formats import FormatFactory
 from helpers.generate_data import generate_test_data
@@ -10,7 +12,6 @@ from helpers.stats import (
     print_write_benchmark_results,
     run_multiple_benchmarks,
 )
-from zarr.core.buffer import NDArrayLike
 
 # Define separate dictionaries for read and write formats and filenames
 write_formats_and_filenames = {

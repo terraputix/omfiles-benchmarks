@@ -46,9 +46,7 @@ def measure_execution(func: Callable[..., T]) -> Callable[..., MeasurementResult
         result = func(*args, **kwargs)
         end_snapshot = tracemalloc.take_snapshot()
         tracemalloc.stop()
-        memory_delta = sum(
-            stat.size_diff for stat in end_snapshot.compare_to(start_snapshot, "lineno")
-        )
+        memory_delta = sum(stat.size_diff for stat in end_snapshot.compare_to(start_snapshot, "lineno"))
 
         # fmt: off
         return MeasurementResult(
@@ -61,9 +59,7 @@ def measure_execution(func: Callable[..., T]) -> Callable[..., MeasurementResult
     return wrapper
 
 
-def run_multiple_benchmarks(
-    func: Callable[..., MeasurementResult], iterations: int = 5
-) -> BenchmarkStats:
+def run_multiple_benchmarks(func: Callable[..., MeasurementResult], iterations: int = 5) -> BenchmarkStats:
     times: List[float] = []
     cpu_times: List[float] = []
     memory_usages: List[float] = []
@@ -99,8 +95,6 @@ def print_read_benchmark_results(results: Dict[str, BenchmarkStats]) -> None:
 
 
 def _print_benchmark_stats(stats: BenchmarkStats) -> None:
-    print(
-        f"  Time: {stats.mean:.6f}s ± {stats.std:.6f}s (min: {stats.min:.6f}s, max: {stats.max:.6f}s)"
-    )
+    print(f"  Time: {stats.mean:.6f}s ± {stats.std:.6f}s (min: {stats.min:.6f}s, max: {stats.max:.6f}s)")
     print(f"  CPU Time: {stats.cpu_mean:.6f}s ± {stats.cpu_std:.6f}s")
     print(f"  Memory Delta: {stats.memory_usage:.2f} B")

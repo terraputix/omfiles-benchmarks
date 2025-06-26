@@ -1,0 +1,31 @@
+name: Ruff Linter & Type Checker
+
+on:
+  push:
+
+jobs:
+  ruff:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/uv.lock"
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Run Ruff linter
+        run: |
+          uv run ruff check --output-format=github .
+        continue-on-error: false
+
+      - name: Run Ruff formatter
+        run: |
+          uv run ruff format --check .
+        continue-on-error: false
