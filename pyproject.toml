@@ -1,5 +1,5 @@
 [project]
-name = "omfiles-benchmarks"
+name = "om_benchmarks"
 version = "0.1.0"
 description = "Benchmark omfiles against other multidimensional array file formats"
 readme = "README.md"
@@ -15,7 +15,8 @@ dependencies = [
     "polars",
     "altair",
     "vl-convert-python",
-    "pillow"
+    "pillow",
+    "cdsapi"
 ]
 
 [dependency-groups]
@@ -30,3 +31,6 @@ line-length = 120
 unfixable = ["F401"]
 # Add import sorting rules (I-prefixed rules)
 extend-select = ["I"]
+
+[tool.uv]
+package = true

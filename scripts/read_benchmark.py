@@ -1,27 +1,19 @@
 from argparse import Namespace
 
 import polars as pl
-from zarr.core.buffer import NDArrayLike
 
-from helpers.args import parse_args
-from helpers.formats import FormatFactory
-from helpers.generate_data import generate_test_data
-from helpers.plotting import create_benchmark_charts
-from helpers.prints import print_data_info
-from helpers.results import BenchmarkResultsManager
-from helpers.schemas import RunMetadata
-from helpers.stats import (
+from om_benchmarks.helpers.args import parse_args
+from om_benchmarks.helpers.bm_writer import bm_write_all_formats
+from om_benchmarks.helpers.formats import FormatFactory
+from om_benchmarks.helpers.generate_data import generate_test_data
+from om_benchmarks.helpers.plotting import create_benchmark_charts
+from om_benchmarks.helpers.prints import print_data_info
+from om_benchmarks.helpers.results import BenchmarkResultsManager
+from om_benchmarks.helpers.schemas import RunMetadata
+from om_benchmarks.helpers.stats import (
     measure_execution,
     run_multiple_benchmarks,
 )
-
-# Define separate dictionaries for read and write formats and filenames
-write_formats_and_filenames = {
-    "h5": "benchmark_files/data.h5",
-    "zarr": "benchmark_files/data.zarr",
-    "nc": "benchmark_files/data.nc",
-    "om": "benchmark_files/data.om",
-}
 
 read_formats_and_filenames = {
     "h5": "benchmark_files/data.h5",
@@ -32,25 +24,6 @@ read_formats_and_filenames = {
     "nc": "benchmark_files/data.nc",
     "om": "benchmark_files/data.om",
 }
-
-
-def bm_write_all_formats(args: Namespace, data: NDArrayLike):
-    write_results = {}
-    for format_name, file in write_formats_and_filenames.items():
-        writer = FormatFactory.create_writer(format_name, file)
-
-        @measure_execution
-        def write():
-            writer.write(data, args.chunk_size)
-
-        try:
-            write_stats = run_multiple_benchmarks(write, args.iterations)
-            write_stats.file_size = writer.get_file_size()
-            write_results[format_name] = write_stats
-        except Exception as e:
-            print(f"Error with {format_name}: {e}")
-
-    return write_results
 
 
 def bm_read_all_formats(args: Namespace):
@@ -87,7 +60,7 @@ def main():
         print_data_info(data, args.chunk_size)
 
         # Run benchmarks
-        write_results = bm_write_all_formats(args, data)
+        write_results = bm_write_all_formats(args.chunk_size, args.iterations, data)
         read_results = bm_read_all_formats(args)
 
         # Create type-safe metadata

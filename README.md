@@ -13,5 +13,5 @@ This project compares the performance of different multidimensional array storag
 Install uv according to the [documentation](https://docs.astral.sh/uv/getting-started/installation/). Then:
 
 ```
-uv run python main.py
+uv run scripts/read_benchmark.py
 ```
