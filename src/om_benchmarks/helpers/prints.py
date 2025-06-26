@@ -1,9 +1,8 @@
-from typing import Tuple
-
+from omfiles.types import BasicSelection
 from zarr.core.buffer import NDArrayLike
 
 
-def print_data_info(data: NDArrayLike, chunk_size: Tuple[int, ...]) -> None:
+def print_data_info(data: NDArrayLike, chunk_size: BasicSelection) -> None:
     print(
         f"""
 Data shape: {data.shape}

@@ -16,7 +16,8 @@ dependencies = [
     "altair",
     "vl-convert-python",
     "pillow",
-    "cdsapi"
+    "cdsapi",
+    "typer>=0.16.0",
 ]
 
 [dependency-groups]
