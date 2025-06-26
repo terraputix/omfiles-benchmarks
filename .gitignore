@@ -11,3 +11,6 @@ wheels/
 
 benchmark_files/*
 !benchmark_files/.gitkeep
+
+benchmark_plots/*
+benchmark_results/*
