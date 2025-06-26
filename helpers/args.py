@@ -23,9 +23,7 @@ def parse_args() -> argparse.Namespace:
         default=(0, 0, 0, 0, ...),
         help="Index for reading",
     )
-    parser.add_argument(
-        "--iterations", type=int, default=10, help="Number of iterations for each test"
-    )
+    parser.add_argument("--iterations", type=int, default=10, help="Number of iterations for each test")
     return parser.parse_args()
 
 
