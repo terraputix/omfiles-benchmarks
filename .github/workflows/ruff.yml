@@ -27,5 +27,5 @@ jobs:
 
       - name: Run Ruff formatter
         run: |
-          uv run ruff format --check --check .
+          uv run ruff format --check .
         continue-on-error: false
