@@ -2,7 +2,6 @@ name: Ruff Linter & Type Checker
 
 on:
   push:
-  pull_request:
 
 jobs:
   ruff:
