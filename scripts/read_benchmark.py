@@ -9,9 +9,14 @@ from om_benchmarks.helpers.schemas import RunMetadata
 
 
 def main(
-    read_index: str = "(100, 200, 0..20)",
-    iterations: int = 10,
-    plot_only: bool = False,
+    read_index: str = typer.Option(
+        "(100, 200, 0..20)",
+        help="Index range to read from datasets in the format '(x, y, z)' or '(x, y, start..end)' for slices.",
+    ),
+    iterations: int = typer.Option(10, help="Number of times to repeat each benchmark for more reliable results."),
+    plot_only: bool = typer.Option(
+        False, help="If True, skips running benchmarks and only plots results from the last saved benchmark run."
+    ),
 ):
     _read_index = parse_tuple(read_index)
     del read_index

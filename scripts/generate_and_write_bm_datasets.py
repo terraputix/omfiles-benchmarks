@@ -18,15 +18,21 @@ from om_benchmarks.helpers.schemas import RunMetadata
 
 
 def main(
-    download_dataset: bool = True,
-    download_again: bool = False,
-    target_download: str = "downloaded_data.nc",
-    generate_dataset: bool = False,
-    array_size: str = "(100, 100, 200)",
-    chunk_size: str = "(5, 5, 1440)",
-    iterations: int = 1,
+    download_dataset: bool = typer.Option(
+        True, help="Whether to download ERA5 data. If False, must set generate_dataset=True to create synthetic data."
+    ),
+    download_again: bool = typer.Option(False, help="Whether to download the dataset again even if it already exists."),
+    target_download: str = typer.Option("downloaded_data.nc", help="Path where downloaded dataset will be saved."),
+    generate_dataset: bool = typer.Option(
+        False, help="Whether to generate synthetic data instead of downloading. Only used if download_dataset=False."
+    ),
+    array_size: str = typer.Option(
+        "(100, 100, 200)", help="Size of the array for synthetic data generation in the format '(x, y, z)'."
+    ),
+    chunk_size: str = typer.Option("(5, 5, 1440)", help="Chunk size for writing data in the format '(x, y, z)'."),
+    iterations: int = typer.Option(1, help="Number of iterations to run for each benchmark."),
 ):
-    # FIXME: Find a way to effectly benchmark against various chunk sizes.
+    # FIXME: Find a way to effectively benchmark against various chunk sizes.
     _chunk_size = cast(tuple[int], parse_tuple(chunk_size))
     del chunk_size
 
