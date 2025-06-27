@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
+
+import polars as pl
 
 
 @dataclass
@@ -34,6 +36,28 @@ class BenchmarkRecord:
     cpu_std_time: float
     memory_usage_bytes: float
     file_size_bytes: float
+
+    @classmethod
+    def polars_df_schema(cls) -> pl.Schema:
+        return pl.Schema(
+            {
+                "run_id": pl.Utf8,
+                "timestamp": pl.Utf8,
+                "operation": pl.Utf8,
+                "format": pl.Utf8,
+                "array_shape": pl.Utf8,
+                "chunk_shape": pl.Utf8,
+                "iterations": pl.Int64,
+                "mean_time": pl.Float64,
+                "std_time": pl.Float64,
+                "min_time": pl.Float64,
+                "max_time": pl.Float64,
+                "cpu_mean_time": pl.Float64,
+                "cpu_std_time": pl.Float64,
+                "memory_usage_bytes": pl.Float64,
+                "file_size_bytes": pl.Int64,
+            }
+        )
 
     @classmethod
     def from_benchmark_stats(
@@ -84,9 +108,8 @@ class RunMetadata:
     """Metadata for a benchmark run"""
 
     array_shape: Tuple[int, ...]
-    chunk_shape: Tuple[int, ...]
+    chunk_shape: Optional[Tuple[int, ...]]
     iterations: int
-    read_index: Any = None
 
     def __post_init__(self):
         """Generate derived fields after initialization"""

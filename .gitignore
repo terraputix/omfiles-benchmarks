@@ -14,3 +14,5 @@ benchmark_files/*
 
 benchmark_plots/*
 benchmark_results/*
+
+downloaded_data.nc
