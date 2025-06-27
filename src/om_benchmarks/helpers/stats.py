@@ -61,16 +61,10 @@ def run_multiple_benchmarks(func: Callable[..., MeasurementResult], iterations: 
 
     return BenchmarkStats(
         mean=statistics.mean(times),
-        std=statistics.stdev(times) if len(times) > 1 else 0,
+        std=statistics.stdev(times) if len(times) > 1 else 0.0,
         min=min(times),
         max=max(times),
         cpu_mean=statistics.mean(cpu_times),
-        cpu_std=statistics.stdev(cpu_times) if len(cpu_times) > 1 else 0,
+        cpu_std=statistics.stdev(cpu_times) if len(cpu_times) > 1 else 0.0,
         memory_usage=statistics.mean(memory_usages),
     )
-
-
-def _print_benchmark_stats(stats: BenchmarkStats) -> None:
-    print(f"  Time: {stats.mean:.6f}s ± {stats.std:.6f}s (min: {stats.min:.6f}s, max: {stats.max:.6f}s)")
-    print(f"  CPU Time: {stats.cpu_mean:.6f}s ± {stats.cpu_std:.6f}s")
-    print(f"  Memory Delta: {stats.memory_usage:.2f} B")

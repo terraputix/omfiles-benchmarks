@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Tuple
 
 import h5py
+import hdf5plugin
 import netCDF4 as nc
 import omfiles as om
 import zarr
@@ -43,7 +44,7 @@ class HDF5Writer(BaseWriter):
         self,
         data: NDArrayLike,
         chunk_size: Tuple[int, ...],
-        compression: str = "gzip",
+        compression: str = "blosclz",
         compression_opts: int = 4,
         shuffle: bool = True,
     ) -> None:
@@ -52,9 +53,9 @@ class HDF5Writer(BaseWriter):
                 "dataset",
                 data=data,
                 chunks=chunk_size,
-                compression=compression,
-                compression_opts=compression_opts,
-                shuffle=shuffle,
+                compression=hdf5plugin.Blosc(
+                    cname=compression, clevel=compression_opts, shuffle=hdf5plugin.Blosc.SHUFFLE
+                ),
             )
 
 
@@ -85,7 +86,13 @@ class NetCDFWriter(BaseWriter):
             for dim, size in zip(dimension_names, data.shape):
                 ds.createDimension(dim, size)
 
-            var = ds.createVariable("dataset", data.dtype, dimension_names, chunksizes=chunk_size)
+            var = ds.createVariable(
+                varname="dataset",
+                datatype=data.dtype,
+                dimensions=dimension_names,
+                # compression="blosc_lz",
+                chunksizes=chunk_size,
+            )
             var[:] = data
 
 

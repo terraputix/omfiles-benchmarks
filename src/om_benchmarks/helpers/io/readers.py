@@ -1,7 +1,9 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
+from typing import Literal, Optional, cast
 
 import h5py
+import hdf5plugin  # noqa: F401
 import netCDF4 as nc
 import numpy as np
 import omfiles as om
@@ -9,6 +11,7 @@ import tensorstore as ts
 import xarray as xr
 import zarr
 from omfiles.types import BasicSelection
+from zarr.core.buffer.core import NDArrayLike
 
 
 class BaseReader(ABC):
@@ -24,6 +27,14 @@ class BaseReader(ABC):
     @abstractmethod
     def close(self) -> None:
         raise NotImplementedError("The close method must be implemented by subclasses")
+
+    @abstractproperty
+    def shape(self) -> tuple[int, ...]:
+        raise NotImplementedError("The shape property must be implemented by subclasses")
+
+    @abstractproperty
+    def chunk_shape(self) -> Optional[tuple[int, ...]]:
+        raise NotImplementedError("The chunk_shape property must be implemented by subclasses")
 
 
 class HDF5Reader(BaseReader):
@@ -46,6 +57,14 @@ class HDF5Reader(BaseReader):
     def close(self) -> None:
         self.h5_reader.file.close()
 
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return self.h5_reader.shape
+
+    @property
+    def chunk_shape(self) -> Optional[tuple[int, ...]]:
+        return self.h5_reader.chunks
+
 
 class HDF5HidefixReader(BaseReader):
     h5_reader: xr.Dataset
@@ -59,6 +78,15 @@ class HDF5HidefixReader(BaseReader):
 
     def close(self) -> None:
         self.h5_reader.close()
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return self.h5_reader["dataset"].shape
+
+    @property
+    def chunk_shape(self) -> Optional[tuple[int, ...]]:
+        # FIXME: unnecessary cast?
+        return cast(Optional[tuple[int, ...]], self.h5_reader["dataset"].chunks)
 
 
 class ZarrReader(BaseReader):
@@ -76,38 +104,21 @@ class ZarrReader(BaseReader):
         self.zarr_reader = array
 
     def read(self, index: BasicSelection) -> np.ndarray:
-        return self.zarr_reader[index].__array__()
+        return cast(NDArrayLike, self.zarr_reader[index]).__array__()
 
     def close(self) -> None:
         self.zarr_reader.store.close()
 
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return self.zarr_reader.shape
 
-class TensorStoreZarrReader(BaseReader):
-    ts_reader: ts.TensorStore  # type: ignore
-
-    def __init__(self, filename: str):
-        super().__init__(filename)
-        # Open the Zarr file using TensorStore
-        self.ts_reader = ts.open(
-            {  # type: ignore
-                "driver": "zarr",
-                "kvstore": {
-                    "driver": "file",
-                    "path": str(self.filename),
-                },
-                "path": "arr_0",
-                "open": True,
-            }
-        ).result()
-
-    def read(self, index: BasicSelection) -> np.ndarray:
-        return self.ts_reader[index].read().result()
-
-    def close(self) -> None:
-        pass
+    @property
+    def chunk_shape(self) -> Optional[tuple[int, ...]]:
+        return self.zarr_reader.chunks
 
 
-class ZarrsCodecsZarrReader(BaseReader):
+class ZarrsCodecsZarrReader(ZarrReader):
     zarr_reader: zarr.Array
 
     def __init__(self, filename: str):
@@ -128,20 +139,39 @@ class ZarrsCodecsZarrReader(BaseReader):
             }
         )
         super().__init__(filename)
-        z = zarr.open(str(self.filename), mode="r")
-        if not isinstance(z, zarr.Group):
-            raise TypeError("Expected a zarr Group")
-        array = z["arr_0"]
-        if not isinstance(array, zarr.Array):
-            raise TypeError("Expected a zarr Array")
 
-        self.zarr_reader = array
+
+class TensorStoreZarrReader(BaseReader):
+    ts_reader: ts.TensorStore  # type: ignore
+
+    def __init__(self, filename: str):
+        super().__init__(filename)
+        # Open the Zarr file using TensorStore
+        self.ts_reader = ts.open(  # type: ignore
+            {
+                "driver": "zarr",
+                "kvstore": {
+                    "driver": "file",
+                    "path": str(self.filename),
+                },
+                "path": "arr_0",
+                "open": True,
+            }
+        ).result()
 
     def read(self, index: BasicSelection) -> np.ndarray:
-        return self.zarr_reader[index].__array__()
+        return self.ts_reader[index].read().result()
 
     def close(self) -> None:
-        self.zarr_reader.store.close()
+        pass
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return self.ts_reader.shape
+
+    @property
+    def chunk_shape(self) -> Optional[tuple[int, ...]]:
+        return self.ts_reader.chunk_layout.read_chunk.shape
 
 
 class NetCDFReader(BaseReader):
@@ -160,6 +190,18 @@ class NetCDFReader(BaseReader):
     def close(self) -> None:
         self.nc_reader.close()
 
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return self.nc_reader.variables["dataset"].shape
+
+    @property
+    def chunk_shape(self) -> Optional[tuple[int, ...]]:
+        chunking = self.nc_reader.variables["dataset"].chunking()
+        assert chunking is not Literal, "netCDF unsupported chunking type: Literal"
+
+        chunks = cast(tuple[int, ...], chunking)
+        return chunks
+
 
 class OMReader(BaseReader):
     om_reader: om.OmFilePyReader
@@ -172,6 +214,12 @@ class OMReader(BaseReader):
         return self.om_reader[index]
 
     def close(self) -> None:
-        pass
-        # TODO: Implement close method
-        # self.om_reader.close()
+        self.om_reader.close()
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return self.om_reader.shape
+
+    @property
+    def chunk_shape(self) -> Optional[tuple[int, ...]]:
+        return self.om_reader.chunks

@@ -369,6 +369,22 @@ wheels = [
 ]
 
 [[package]]
+name = "hdf5plugin"
+version = "5.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "h5py" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cf/77/136d49eff653001caf08fbb43cf90b9985f2126f257dd89fc4a768f1ac9f/hdf5plugin-5.1.0.tar.gz", hash = "sha256:cf78f1426b5868128b9ec6c498b70d6734e1dc8007a8ed1e7282954ab421b3fa", size = 65674335, upload-time = "2025-03-31T09:12:25.469Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f2/c2/2ea8edb2b69b3aee3ba7021744f9b6ad93cd89b4bbaae4e4aac41fb75318/hdf5plugin-5.1.0-py3-none-macosx_10_13_universal2.whl", hash = "sha256:6f88bdc3ebf1d7393557d6c70811552f76f8fdd275988a7d2c904633f1a21a1d", size = 13335707, upload-time = "2025-03-31T09:12:05.785Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/66/9abd90121e29ecee137a7d31c92aea33736278a72a6d1f61009c8cc7dcc9/hdf5plugin-5.1.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0151f844e5f7de0e26cc2de275a339f6936c825fee915cbd54318e22a913c00a", size = 43842855, upload-time = "2025-03-31T09:12:09.243Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/7b/5f0c587d0c0fa6e42468eb5196927be7f91d91ee781a7a654d4204fe7716/hdf5plugin-5.1.0-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:b613e16d376d3b37fd2d76893e356c402100bd68a02abbe960a98e8257ca8758", size = 46010074, upload-time = "2025-03-31T09:12:14.364Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/db/8d85bd3f5b9ee894518f9d9ed1019fd8b7014340beca512dfb76d5632ec9/hdf5plugin-5.1.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6da81b0b168f271b0cf995a12c28cf01b381587fed21f25fd91b2c90d5108425", size = 45876035, upload-time = "2025-03-31T09:12:18.479Z" },
+    { url = "https://files.pythonhosted.org/packages/43/fb/7f85e84f35792e9ee20c557bf5fe2ac180cca73beae411a1d91898fcc4b5/hdf5plugin-5.1.0-py3-none-win_amd64.whl", hash = "sha256:6be3409554bde676db0f1ab46a27e87ea73d7974f359f354a738c812618261d1", size = 3359510, upload-time = "2025-03-31T09:12:21.988Z" },
+]
+
+[[package]]
 name = "hidefix"
 version = "0.12.0"
 source = { registry = "https://pypi.org/simple" }
@@ -681,6 +697,7 @@ dependencies = [
     { name = "altair" },
     { name = "cdsapi" },
     { name = "h5py" },
+    { name = "hdf5plugin" },
     { name = "hidefix" },
     { name = "netcdf4" },
     { name = "omfiles" },
@@ -703,6 +720,7 @@ requires-dist = [
     { name = "altair" },
     { name = "cdsapi" },
     { name = "h5py" },
+    { name = "hdf5plugin", specifier = ">=5.1.0" },
     { name = "hidefix" },
     { name = "netcdf4" },
     { name = "omfiles", git = "https://github.com/open-meteo/python-omfiles.git" },
@@ -721,7 +739,7 @@ dev = [{ name = "ruff" }]
 [[package]]
 name = "omfiles"
 version = "0.0.2"
-source = { git = "https://github.com/open-meteo/python-omfiles.git#095bbe6405a7afb597b27f6b7bd425da51477efe" }
+source = { git = "https://github.com/open-meteo/python-omfiles.git#85467520c29198f8958cb2f997d7179d5216b8fe" }
 dependencies = [
     { name = "fsspec" },
     { name = "numpy" },
