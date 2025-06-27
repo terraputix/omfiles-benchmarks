@@ -5,7 +5,6 @@ from om_benchmarks.helpers.parse_tuple import parse_tuple
 from om_benchmarks.helpers.plotting import create_benchmark_charts
 from om_benchmarks.helpers.prints import print_bm_results
 from om_benchmarks.helpers.results import BenchmarkResultsManager
-from om_benchmarks.helpers.schemas import RunMetadata
 
 
 def main(
@@ -25,14 +24,8 @@ def main(
     # Initialize results manager
     results_manager = BenchmarkResultsManager()
     if not plot_only:
-        read_results, array_shape, chunk_shape = bm_read_all_formats(_read_index, iterations)
-
-        metadata = RunMetadata(
-            array_shape=array_shape,
-            chunk_shape=chunk_shape,
-            iterations=iterations,
-        )
-        current_df = results_manager.save_and_display_results(read_results, metadata, type="read")
+        read_results = bm_read_all_formats(_read_index, iterations)
+        current_df = results_manager.save_and_display_results(read_results, type="read")
     else:
         # Load results from file
         current_df = results_manager.load_last_results()

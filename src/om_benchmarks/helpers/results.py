@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import polars as pl
 
@@ -16,14 +16,14 @@ class BenchmarkResultsManager:
         self.last_run_path = self.results_dir / "benchmark_results_last.csv"
 
     def save_and_display_results(
-        self, results: Dict[str, BenchmarkStats], metadata: RunMetadata, type: str
+        self, results: Dict[str, Tuple[BenchmarkStats, RunMetadata]], type: str
     ) -> pl.DataFrame:
         """Save benchmark results to CSV and return DataFrame for display"""
 
         records: List[BenchmarkRecord] = []
 
         # Process results
-        for format_name, stats in results.items():
+        for format_name, (stats, metadata) in results.items():
             record = BenchmarkRecord.from_benchmark_stats(stats, format_name, type, metadata)
             records.append(record)
 

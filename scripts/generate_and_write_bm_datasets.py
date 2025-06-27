@@ -61,13 +61,14 @@ def main(
 
     # Run benchmarks
     results_manager = BenchmarkResultsManager()
-    write_results = bm_write_all_formats(chunk_size=_chunk_size, iterations=1, data=data)
     metadata = RunMetadata(
         array_shape=data.shape,
         chunk_shape=_chunk_size,
         iterations=iterations,
     )
-    current_df = results_manager.save_and_display_results(write_results, metadata, type="write")
+    write_results = bm_write_all_formats(chunk_size=_chunk_size, metadata=metadata, data=data)
+
+    current_df = results_manager.save_and_display_results(write_results, type="write")
     print_bm_results(results_manager=results_manager, results_df=current_df)
     # Create visualizations
     # create_benchmark_charts(current_df)
