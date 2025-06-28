@@ -3,26 +3,28 @@ from pathlib import Path
 import altair as alt
 import polars as pl
 
+from om_benchmarks.helpers.constants import PLOTS_DIR
+
 # from PIL import Image
 
+alt.data_transformers.enable("json")
+alt.themes.enable("opaque")
 
-def create_benchmark_charts(df: pl.DataFrame, save_dir: str = "benchmark_plots") -> None:
+
+def create_benchmark_charts(df: pl.DataFrame, save_dir: str | Path = PLOTS_DIR) -> None:
     """Create benchmark visualization charts using Altair with proper column names"""
 
-    save_path = Path(save_dir)
-    save_path.mkdir(exist_ok=True)
+    if not isinstance(save_dir, Path):
+        save_dir = Path(save_dir)
 
-    alt.data_transformers.enable("json")
-    alt.themes.enable("opaque")
+    create_and_save_perf_chart(df, save_dir)
+    create_and_save_file_size_chart(df, save_dir)
+    create_and_save_memory_usage_chart(df, save_dir)
 
-    _create_and_save_perf_chart(df, save_path)
-    _create_and_save_file_size_chart(df, save_path)
-    _create_and_save_memory_usage_chart(df, save_path)
-
-    print(f"Charts saved to {save_path}")
+    print(f"Charts saved to {save_dir}")
 
 
-def _create_and_save_perf_chart(df, save_path):
+def create_and_save_perf_chart(df, save_dir):
     perf_chart = (
         alt.Chart(df)
         .mark_bar(cornerRadius=2)
@@ -58,11 +60,11 @@ def _create_and_save_perf_chart(df, save_path):
         .configure_axis(grid=True, gridOpacity=0.2)
     )
 
-    perf_chart.save(str(save_path / "performance_comparison.png"), ppi=400)
+    perf_chart.save(str(save_dir / "performance_comparison.png"), ppi=400)
     # Image.open(str(save_path / "performance_comparison.png")).show()
 
 
-def _create_and_save_file_size_chart(df, save_path):
+def create_and_save_file_size_chart(df, save_dir):
     write_df = df.filter(pl.col("operation") == "write").filter(pl.col("file_size_bytes") > 0)
 
     file_size_chart = (
@@ -77,11 +79,11 @@ def _create_and_save_file_size_chart(df, save_path):
         .properties(width=400, height=200, title="File Size by Format")
     )
 
-    file_size_chart.save(str(save_path / "file_size_comparison.png"), ppi=400)
+    file_size_chart.save(str(save_dir / "file_size_comparison.png"), ppi=400)
     # Image.open(str(save_path / "file_size_comparison.png")).show()
 
 
-def _create_and_save_memory_usage_chart(df, save_path):
+def create_and_save_memory_usage_chart(df, save_dir):
     memory_chart = (
         alt.Chart(df)
         .mark_bar(cornerRadius=2)
@@ -100,5 +102,5 @@ def _create_and_save_memory_usage_chart(df, save_path):
         .properties(width=400, height=200, title="Memory Usage by Format and Operation")
     )
 
-    memory_chart.save(str(save_path / "memory_usage.png"), ppi=400)
+    memory_chart.save(str(save_dir / "memory_usage.png"), ppi=400)
     # Image.open(str(save_path / "memory_usage.png")).show()

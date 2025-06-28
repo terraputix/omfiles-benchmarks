@@ -2,9 +2,13 @@ import typer
 
 from om_benchmarks.helpers.bm_reader import bm_read_all_formats
 from om_benchmarks.helpers.parse_tuple import parse_tuple
-from om_benchmarks.helpers.plotting import create_benchmark_charts
+from om_benchmarks.helpers.plotting import (
+    create_and_save_memory_usage_chart,
+    create_and_save_perf_chart,
+)
 from om_benchmarks.helpers.prints import print_bm_results
 from om_benchmarks.helpers.results import BenchmarkResultsManager
+from om_benchmarks.helpers.script_utils import get_script_dirs
 
 
 def main(
@@ -22,7 +26,8 @@ def main(
     print("Read index:", _read_index)
 
     # Initialize results manager
-    results_manager = BenchmarkResultsManager()
+    results_dir, plots_dir = get_script_dirs(__file__)
+    results_manager = BenchmarkResultsManager(results_dir)
     if not plot_only:
         read_results = bm_read_all_formats(_read_index, iterations)
         current_df = results_manager.save_and_display_results(read_results, type="read")
@@ -32,7 +37,8 @@ def main(
 
     print_bm_results(results_manager=results_manager, results_df=current_df)
     # Create visualizations
-    create_benchmark_charts(current_df)
+    create_and_save_perf_chart(current_df, plots_dir)
+    create_and_save_memory_usage_chart(current_df, plots_dir)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Literal, Optional, cast
 
 import h5py
-import hdf5plugin  # noqa: F401
 import netCDF4 as nc
 import numpy as np
 import omfiles as om

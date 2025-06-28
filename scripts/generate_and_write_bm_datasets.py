@@ -10,11 +10,15 @@ from om_benchmarks.helpers.bm_writer import bm_write_all_formats
 from om_benchmarks.helpers.era5 import configure_era5_request
 from om_benchmarks.helpers.generate_data import generate_test_data
 from om_benchmarks.helpers.parse_tuple import parse_tuple
-
-# from om_benchmarks.helpers.plotting import create_benchmark_charts
+from om_benchmarks.helpers.plotting import (
+    create_and_save_file_size_chart,
+    create_and_save_memory_usage_chart,
+    create_and_save_perf_chart,
+)
 from om_benchmarks.helpers.prints import print_bm_results, print_data_info
 from om_benchmarks.helpers.results import BenchmarkResultsManager
 from om_benchmarks.helpers.schemas import RunMetadata
+from om_benchmarks.helpers.script_utils import get_script_dirs
 
 
 def main(
@@ -60,7 +64,8 @@ def main(
     print_data_info(data, _chunk_size)
 
     # Run benchmarks
-    results_manager = BenchmarkResultsManager()
+    results_dir, plots_dir = get_script_dirs(__file__)
+    results_manager = BenchmarkResultsManager(results_dir)
     metadata = RunMetadata(
         array_shape=data.shape,
         chunk_shape=_chunk_size,
@@ -71,7 +76,9 @@ def main(
     current_df = results_manager.save_and_display_results(write_results, type="write")
     print_bm_results(results_manager=results_manager, results_df=current_df)
     # Create visualizations
-    # create_benchmark_charts(current_df)
+    create_and_save_perf_chart(current_df, plots_dir)
+    create_and_save_file_size_chart(current_df, plots_dir)
+    create_and_save_memory_usage_chart(current_df, plots_dir)
 
     print("All formats saved successfully!")
 
