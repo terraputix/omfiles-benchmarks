@@ -1,5 +1,7 @@
 import gc
+import platform
 import statistics
+import subprocess
 import time
 import tracemalloc
 from functools import wraps
@@ -20,6 +22,8 @@ class MeasurementResult(NamedTuple):
 def measure_execution(func: Callable[..., T]) -> Callable[..., MeasurementResult]:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> MeasurementResult:
+        # empty disk cache
+        clear_cache()
         # measure time
         start_time = time.time()
         cpu_start_time = time.process_time()
@@ -46,6 +50,16 @@ def measure_execution(func: Callable[..., T]) -> Callable[..., MeasurementResult
         )
 
     return wrapper
+
+
+# stolen from https://github.com/zarrs/zarr_benchmarks/blob/9679f36ca795cce65adc603ae41147324208d3d9/scripts/_run_benchmark.py#L5
+def clear_cache():
+    if platform.system() == "Darwin":
+        subprocess.call(["sync", "&&", "sudo", "purge"])
+    elif platform.system() == "Linux":
+        subprocess.call(["sudo", "sh", "-c", "sync; echo 3 > /proc/sys/vm/drop_caches"])
+    else:
+        raise Exception("Unsupported platform")
 
 
 def run_multiple_benchmarks(func: Callable[..., MeasurementResult], iterations: int = 5) -> BenchmarkStats:

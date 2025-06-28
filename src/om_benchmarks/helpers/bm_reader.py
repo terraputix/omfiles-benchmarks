@@ -18,9 +18,12 @@ read_formats_and_filenames = {
 }
 
 
-def bm_read_all_formats(read_index, iterations) -> dict[str, Tuple[BenchmarkStats, RunMetadata]]:
+def bm_read_all_formats(
+    read_index, iterations, plot_read_data: bool = False
+) -> dict[str, Tuple[BenchmarkStats, RunMetadata]]:
     read_results: dict[str, Tuple[BenchmarkStats, RunMetadata]] = {}
     for format_name, file in read_formats_and_filenames.items():
+        print(f"Benchmarking {format_name}...")
         reader = FormatFactory.create_reader(format_name, file)
 
         @measure_execution
@@ -28,8 +31,9 @@ def bm_read_all_formats(read_index, iterations) -> dict[str, Tuple[BenchmarkStat
             return reader.read(read_index)
 
         try:
-            sample_data = reader.read(read_index)  # Get sample data for verification
-            print(sample_data)
+            if plot_read_data:
+                sample_data = reader.read(read_index)  # Get sample data for verification
+                print(sample_data)
             read_stats = run_multiple_benchmarks(read, iterations)
             read_results[format_name] = (
                 read_stats,
