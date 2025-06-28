@@ -3,14 +3,18 @@ from typing import Dict, List, Tuple
 
 import polars as pl
 
+from om_benchmarks.helpers.constants import RESULTS_DIR
+
 from .schemas import BenchmarkRecord, BenchmarkStats, RunMetadata
 
 
 class BenchmarkResultsManager:
     """Type-safe benchmark results manager"""
 
-    def __init__(self, results_dir: str = "benchmark_results"):
-        self.results_dir = Path(results_dir)
+    def __init__(self, results_dir: str | Path = RESULTS_DIR):
+        if not isinstance(results_dir, Path):
+            results_dir = Path(results_dir)
+        self.results_dir = results_dir
         self.results_dir.mkdir(exist_ok=True)
         self.csv_path = self.results_dir / "benchmark_results.csv"
         self.last_run_path = self.results_dir / "benchmark_results_last.csv"
