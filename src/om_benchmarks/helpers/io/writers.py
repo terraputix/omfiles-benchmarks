@@ -6,7 +6,7 @@ from typing import Tuple
 import h5py
 import hdf5plugin
 import netCDF4 as nc
-import numcodecs.zarr3
+import numcodecs
 import omfiles as om
 import zarr
 from zarr.core.buffer import NDArrayLike

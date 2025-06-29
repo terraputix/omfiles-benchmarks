@@ -16,7 +16,7 @@ from zarr.core.buffer.core import NDArrayLike
 class BaseReader(ABC):
     filename: Path
 
-    def __init__(self, filename):
+    def __init__(self, filename: str):
         self.filename = Path(filename)
 
     @classmethod
