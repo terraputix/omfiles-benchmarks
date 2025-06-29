@@ -22,6 +22,7 @@ dependencies = [
     "typer>=0.16.0",
     "hdf5plugin>=5.1.0",
     "pcodec>=0.3.5",
+    "psutil>=7.0.0",
 ]
 
 [dependency-groups]
