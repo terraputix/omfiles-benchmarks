@@ -1,3 +1,4 @@
+import asyncio
 import gc
 import multiprocessing
 import os
@@ -6,7 +7,7 @@ import statistics
 import subprocess
 import time
 from functools import wraps
-from typing import Callable, List, NamedTuple, TypeVar
+from typing import Awaitable, Callable, List, NamedTuple, TypeVar
 
 import psutil
 
@@ -36,7 +37,11 @@ def _subprocess_target(func, args, kwargs, queue):
     rss_before = get_rss()
     start_time = time.time()
     cpu_start_time = time.process_time()
-    _result = func(*args, **kwargs)
+    # We need to handle coroutines when we are running them in a subprocess
+    if asyncio.iscoroutinefunction(func):
+        _result = asyncio.run(func(*args, **kwargs))
+    else:
+        _result = func(*args, **kwargs)
     elapsed_time = time.time() - start_time
     cpu_elapsed_time = time.process_time() - cpu_start_time
     gc.collect()
@@ -45,9 +50,9 @@ def _subprocess_target(func, args, kwargs, queue):
     queue.put((elapsed_time, cpu_elapsed_time, memory_delta))
 
 
-def measure_execution(func: Callable[..., T]) -> Callable[..., MeasurementResult]:
+def measure_execution(func: Callable[..., T]) -> Callable[..., Awaitable[MeasurementResult]]:
     @wraps(func)
-    def wrapper(*args, **kwargs) -> MeasurementResult:
+    async def wrapper(*args, **kwargs) -> MeasurementResult:
         queue = multiprocessing.Queue()
         p = multiprocessing.Process(target=_subprocess_target, args=(func, args, kwargs, queue))
         p.start()
@@ -56,6 +61,7 @@ def measure_execution(func: Callable[..., T]) -> Callable[..., MeasurementResult
             elapsed_time, cpu_elapsed_time, memory_delta = queue.get()
         else:
             raise RuntimeError("Subprocess did not return results")
+
         return MeasurementResult(
             elapsed=elapsed_time,
             cpu_elapsed=cpu_elapsed_time,
@@ -75,13 +81,16 @@ def clear_cache():
         raise Exception("Unsupported platform")
 
 
-def run_multiple_benchmarks(func: Callable[..., MeasurementResult], iterations: int = 5) -> BenchmarkStats:
+async def run_multiple_benchmarks(
+    func: Callable[[], Awaitable[MeasurementResult]],
+    iterations: int = 5,
+) -> BenchmarkStats:
     times: List[float] = []
     cpu_times: List[float] = []
     memory_usages: List[float] = []
 
     for _ in range(iterations):
-        result = func()
+        result = await func()
         times.append(result.elapsed)
         cpu_times.append(result.cpu_elapsed)
         memory_usages.append(result.memory_delta)

@@ -747,7 +747,7 @@ dev = [{ name = "ruff" }]
 [[package]]
 name = "omfiles"
 version = "0.0.2"
-source = { git = "https://github.com/open-meteo/python-omfiles.git#85467520c29198f8958cb2f997d7179d5216b8fe" }
+source = { git = "https://github.com/open-meteo/python-omfiles.git#150f6a1f8b6f6b1e93de3712681e54c4db23a545" }
 dependencies = [
     { name = "fsspec" },
     { name = "numpy" },

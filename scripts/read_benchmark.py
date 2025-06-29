@@ -1,5 +1,6 @@
 import typer
 
+from om_benchmarks.helpers.AsyncTyper import AsyncTyper
 from om_benchmarks.helpers.bm_reader import bm_read_all_formats
 from om_benchmarks.helpers.parse_tuple import parse_tuple
 from om_benchmarks.helpers.plotting import (
@@ -10,8 +11,11 @@ from om_benchmarks.helpers.prints import print_bm_results
 from om_benchmarks.helpers.results import BenchmarkResultsManager
 from om_benchmarks.helpers.script_utils import get_script_dirs
 
+app = AsyncTyper()
 
-def main(
+
+@app.command()
+async def main(
     read_index: str = typer.Option(
         "(...)",
         help="Index range to read from datasets in the format '(x, y, z)' or '(x, y, start..end)' for slices.",
@@ -29,7 +33,7 @@ def main(
     results_dir, plots_dir = get_script_dirs(__file__)
     results_manager = BenchmarkResultsManager(results_dir)
     if not plot_only:
-        read_results = bm_read_all_formats(_read_index, iterations)
+        read_results = await bm_read_all_formats(_read_index, iterations)
         current_df = results_manager.save_and_display_results(read_results, type="read")
     else:
         # Load results from file
@@ -42,4 +46,4 @@ def main(
 
 
 if __name__ == "__main__":
-    typer.run(main)
+    app()

@@ -37,7 +37,7 @@ class FormatFactory:
         return cls.writers[format_name](filename)
 
     @classmethod
-    def create_reader(cls, format_name: str, filename: str) -> BaseReader:
+    async def create_reader(cls, format_name: str, filename: str) -> BaseReader:
         if format_name not in cls.readers:
             raise ValueError(f"Unknown format: {format_name}")
-        return cls.readers[format_name](filename)
+        return await cls.readers[format_name].create(filename)
