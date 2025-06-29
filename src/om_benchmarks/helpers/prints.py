@@ -23,10 +23,3 @@ def print_bm_results(results_manager: BenchmarkResultsManager, results_df: pl.Da
         print("=" * 80)
         summary_df = results_manager.get_current_results_summary(results_df)
         print(summary_df)
-
-        # Show performance comparison
-        print("\n" + "=" * 80)
-        print("PERFORMANCE COMPARISON")
-        print("=" * 80)
-        comparison_df = results_manager.get_performance_comparison(results_df)
-        print(comparison_df)

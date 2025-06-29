@@ -6,6 +6,8 @@ from typing import Tuple
 import h5py
 import hdf5plugin
 import netCDF4 as nc
+import numcodecs.pcodec
+import numcodecs.zarr3
 import omfiles as om
 import zarr
 from zarr.core.buffer import NDArrayLike
@@ -46,7 +48,6 @@ class HDF5Writer(BaseWriter):
         chunk_size: Tuple[int, ...],
         compression: str = "blosclz",
         compression_opts: int = 4,
-        shuffle: bool = True,
     ) -> None:
         with h5py.File(self.filename, "w") as f:
             f.create_dataset(
@@ -54,18 +55,19 @@ class HDF5Writer(BaseWriter):
                 data=data,
                 chunks=chunk_size,
                 compression=hdf5plugin.Blosc(
-                    cname=compression, clevel=compression_opts, shuffle=hdf5plugin.Blosc.SHUFFLE
+                    cname=compression,
+                    clevel=compression_opts,
+                    shuffle=hdf5plugin.Blosc.SHUFFLE,
                 ),
             )
 
 
 class ZarrWriter(BaseWriter):
     def write(self, data: NDArrayLike, chunk_size: Tuple[int, ...]) -> None:
-        import numcodecs
-
-        compressors = numcodecs.Blosc(cname="zstd", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE)
-        # zarr.create_array(str(self.filename), name="arr_0", data=data, chunks=chunk_size, compressors=compressors, zarr_format=2, overwrite=True)
-        root = zarr.open(str(self.filename), mode="w", zarr_format=2)
+        compressor = numcodecs.zarr3.Blosc(cname="lz4", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE)
+        # serializer = numcodecs.zarr3.PCodec(level=8, mode_spec="auto")
+        # filter = numcodecs.zarr3.FixedScaleOffset(offset=0, scale=100, dtype="f4", astype="i4")
+        root = zarr.open(str(self.filename), mode="w", zarr_format=3)
         # Ensure root is a Group and not an Array (for type checker)
         if not isinstance(root, zarr.Group):
             raise TypeError("Expected root to be a zarr.hierarchy.Group")
@@ -74,7 +76,9 @@ class ZarrWriter(BaseWriter):
             shape=data.shape,
             chunks=chunk_size,
             dtype="f4",
-            compressor=compressors,
+            compressors=[compressor],
+            # serializer=serializer,
+            # filters=[filter],
         )
         arr_0[:] = data
 
@@ -99,5 +103,11 @@ class NetCDFWriter(BaseWriter):
 class OMWriter(BaseWriter):
     def write(self, data: NDArrayLike, chunk_size: Tuple[int, ...]) -> None:
         writer = om.OmFilePyWriter(str(self.filename))
-        variable = writer.write_array(data.__array__(), chunk_size, 100, 0)
+        variable = writer.write_array(
+            data=data.__array__(),
+            chunks=chunk_size,
+            scale_factor=100,
+            add_offset=0,
+            compression="pfor_delta_2d",
+        )
         writer.close(variable)

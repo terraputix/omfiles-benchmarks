@@ -1,7 +1,9 @@
+import asyncio
 from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 from typing import Literal, Optional, cast
 
+import dask.array as da
 import h5py
 import netCDF4 as nc
 import numpy as np
@@ -16,11 +18,15 @@ from zarr.core.buffer.core import NDArrayLike
 class BaseReader(ABC):
     filename: Path
 
-    def __init__(self, filename: str):
+    def __init__(self, filename):
         self.filename = Path(filename)
 
+    @classmethod
+    async def create(cls, filename: str):
+        return cls(filename)
+
     @abstractmethod
-    def read(self, index: BasicSelection) -> np.ndarray:
+    async def read(self, index: BasicSelection) -> np.ndarray:
         raise NotImplementedError("The read method must be implemented by subclasses")
 
     @abstractmethod
@@ -39,8 +45,9 @@ class BaseReader(ABC):
 class HDF5Reader(BaseReader):
     h5_reader: h5py.Dataset
 
-    def __init__(self, filename: str):
-        super().__init__(filename)
+    @classmethod
+    async def create(cls, filename: str) -> "HDF5Reader":
+        self = await super().create(filename)
         # Disable chunk caching by setting cache properties
         # Parameters: (chunk_cache_mem_size, chunk_cache_nslots, chunk_cache_w0)
         # Setting size to 0 effectively disables the cache
@@ -50,8 +57,9 @@ class HDF5Reader(BaseReader):
         if not isinstance(dataset, h5py.Dataset):
             raise TypeError("Expected a h5py Dataset")
         self.h5_reader = dataset
+        return self
 
-    def read(self, index: BasicSelection) -> np.ndarray:
+    async def read(self, index: BasicSelection) -> np.ndarray:
         return self.h5_reader[index]
 
     def close(self) -> None:
@@ -69,11 +77,13 @@ class HDF5Reader(BaseReader):
 class HDF5HidefixReader(BaseReader):
     h5_reader: xr.Dataset
 
-    def __init__(self, filename: str):
-        super().__init__(filename)
+    @classmethod
+    async def create(cls, filename: str):
+        self = await super().create(filename)
         self.h5_reader = xr.open_dataset(self.filename, engine="hidefix")
+        return self
 
-    def read(self, index: BasicSelection) -> np.ndarray:
+    async def read(self, index: BasicSelection) -> np.ndarray:
         return self.h5_reader["dataset"][index].values
 
     def close(self) -> None:
@@ -92,8 +102,10 @@ class HDF5HidefixReader(BaseReader):
 class ZarrReader(BaseReader):
     zarr_reader: zarr.Array
 
-    def __init__(self, filename: str):
-        super().__init__(filename)
+    @classmethod
+    async def create(cls, filename: str):
+        self = await super().create(filename)
+        zarr.config.set({"threading.max_workers": 8})
         z = zarr.open(str(self.filename), mode="r")
         if not isinstance(z, zarr.Group):
             raise TypeError("Expected a zarr Group")
@@ -102,8 +114,9 @@ class ZarrReader(BaseReader):
             raise TypeError("Expected a zarr Array")
 
         self.zarr_reader = array
+        return self
 
-    def read(self, index: BasicSelection) -> np.ndarray:
+    async def read(self, index: BasicSelection) -> np.ndarray:
         return cast(NDArrayLike, self.zarr_reader[index]).__array__()
 
     def close(self) -> None:
@@ -121,7 +134,8 @@ class ZarrReader(BaseReader):
 class ZarrsCodecsZarrReader(ZarrReader):
     zarr_reader: zarr.Array
 
-    def __init__(self, filename: str):
+    @classmethod
+    async def create(cls, filename: str):
         import zarrs  # noqa: F401
 
         zarr.config.set(
@@ -138,14 +152,50 @@ class ZarrsCodecsZarrReader(ZarrReader):
                 }
             }
         )
-        super().__init__(filename)
+        self = await super().create(filename)
+        return self
+
+
+class DaskZarrReader(BaseReader):
+    dask_array: da.Array
+
+    @classmethod
+    async def create(cls, filename: str):
+        self = await super().create(filename)
+        # Open the Zarr array using Dask (assumes group/arr_0 pattern)
+        z = zarr.open(str(self.filename), mode="r")
+        if not isinstance(z, zarr.Group):
+            raise TypeError("Expected a zarr Group")
+        array = z["arr_0"]
+        if not isinstance(array, zarr.Array):
+            raise TypeError("Expected a zarr Array")
+        # Wrap with dask
+        self.dask_array = da.from_zarr(array)
+        return self
+
+    async def read(self, index: BasicSelection) -> np.ndarray:
+        # Dask computes in parallel by default
+        return self.dask_array[index].compute(num_workers=8)
+
+    def close(self) -> None:
+        # No explicit close needed for Dask/zarr
+        pass
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return cast(tuple[int, ...], self.dask_array.shape)
+
+    @property
+    def chunk_shape(self) -> Optional[tuple[int, ...]]:
+        return self.dask_array.chunks
 
 
 class TensorStoreZarrReader(BaseReader):
     ts_reader: ts.TensorStore  # type: ignore
 
-    def __init__(self, filename: str):
-        super().__init__(filename)
+    @classmethod
+    async def create(cls, filename: str):
+        self = await super().create(filename)
         # Open the Zarr file using TensorStore
         self.ts_reader = ts.open(  # type: ignore
             {
@@ -159,7 +209,9 @@ class TensorStoreZarrReader(BaseReader):
             }
         ).result()
 
-    def read(self, index: BasicSelection) -> np.ndarray:
+        return self
+
+    async def read(self, index: BasicSelection) -> np.ndarray:
         return self.ts_reader[index].read().result()
 
     def close(self) -> None:
@@ -177,14 +229,17 @@ class TensorStoreZarrReader(BaseReader):
 class NetCDFReader(BaseReader):
     nc_reader: nc.Dataset
 
-    def __init__(self, filename: str):
-        super().__init__(filename)
+    @classmethod
+    async def create(cls, filename: str):
+        self = await super().create(filename)
         # disable netcdf caching: https://www.unidata.ucar.edu/software/netcdf/workshops/2012/nc4chunking/Cache.html
         nc.set_chunk_cache(0, 0, 0)
 
         self.nc_reader = nc.Dataset(self.filename, "r")
 
-    def read(self, index: BasicSelection) -> np.ndarray:
+        return self
+
+    async def read(self, index: BasicSelection) -> np.ndarray:
         return self.nc_reader.variables["dataset"][index]
 
     def close(self) -> None:
@@ -204,13 +259,18 @@ class NetCDFReader(BaseReader):
 
 
 class OMReader(BaseReader):
+    # om_reader: om.OmFilePyReaderAsync
     om_reader: om.OmFilePyReader
 
-    def __init__(self, filename: str):
-        super().__init__(filename)
+    @classmethod
+    async def create(cls, filename: str):
+        self = await super().create(filename)
+        # self.om_reader = await om.OmFilePyReaderAsync.from_path(str(self.filename))
         self.om_reader = om.OmFilePyReader(str(self.filename))
+        return self
 
-    def read(self, index: BasicSelection) -> np.ndarray:
+    async def read(self, index: BasicSelection) -> np.ndarray:
+        # return await self.om_reader.read_concurrent(index)
         return self.om_reader[index]
 
     def close(self) -> None:

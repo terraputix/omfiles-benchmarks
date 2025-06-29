@@ -23,17 +23,20 @@ from om_benchmarks.helpers.script_utils import get_script_dirs
 
 def main(
     download_dataset: bool = typer.Option(
-        True, help="Whether to download ERA5 data. If False, must set generate_dataset=True to create synthetic data."
+        True,
+        help="Whether to download ERA5 data. If False, must set generate_dataset=True to create synthetic data.",
     ),
     download_again: bool = typer.Option(False, help="Whether to download the dataset again even if it already exists."),
     target_download: str = typer.Option("downloaded_data.nc", help="Path where downloaded dataset will be saved."),
     generate_dataset: bool = typer.Option(
-        False, help="Whether to generate synthetic data instead of downloading. Only used if download_dataset=False."
+        False,
+        help="Whether to generate synthetic data instead of downloading. Only used if download_dataset=False.",
     ),
     array_size: str = typer.Option(
-        "(100, 100, 200)", help="Size of the array for synthetic data generation in the format '(x, y, z)'."
+        "(100, 100, 200)",
+        help="Size of the array for synthetic data generation in the format '(x, y, z)'.",
     ),
-    chunk_size: str = typer.Option("(5, 5, 1440)", help="Chunk size for writing data in the format '(x, y, z)'."),
+    chunk_size: str = typer.Option("(50, 50, 1440)", help="Chunk size for writing data in the format '(x, y, z)'."),
     iterations: int = typer.Option(1, help="Number of iterations to run for each benchmark."),
 ):
     # FIXME: Find a way to effectively benchmark against various chunk sizes.

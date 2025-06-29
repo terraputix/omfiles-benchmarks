@@ -81,17 +81,3 @@ class BenchmarkResultsManager:
         if not self.csv_path.exists():
             return pl.DataFrame()
         return pl.read_csv(self.csv_path)
-
-    def get_performance_comparison(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Get performance comparison between formats"""
-        return (
-            df.group_by(["operation", "format"])
-            .agg(
-                [
-                    pl.col("mean_time").mean().alias("avg_mean_time"),
-                    pl.col("mean_time").min().alias("best_time"),
-                    pl.col("file_size_bytes").last().alias("file_size"),
-                ]
-            )
-            .sort(["operation", "avg_mean_time"])
-        )
