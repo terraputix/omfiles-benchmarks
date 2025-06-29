@@ -40,7 +40,7 @@ async def main(
         "(100, 100, 200)",
         help="Size of the array for synthetic data generation in the format '(x, y, z)'.",
     ),
-    chunk_size: str = typer.Option("(50, 50, 1440)", help="Chunk size for writing data in the format '(x, y, z)'."),
+    chunk_size: str = typer.Option("(5, 5, 1440)", help="Chunk size for writing data in the format '(x, y, z)'."),
     iterations: int = typer.Option(1, help="Number of iterations to run for each benchmark."),
 ):
     # FIXME: Find a way to effectively benchmark against various chunk sizes.
