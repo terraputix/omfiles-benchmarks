@@ -6,7 +6,7 @@ from typing import Tuple
 import h5py
 import hdf5plugin
 import netCDF4 as nc
-import numcodecs
+import numcodecs.zarr3
 import omfiles as om
 import zarr
 from zarr.core.buffer import NDArrayLike
@@ -63,10 +63,10 @@ class HDF5Writer(BaseWriter):
 
 class ZarrWriter(BaseWriter):
     def write(self, data: NDArrayLike, chunk_size: Tuple[int, ...]) -> None:
-        compressor = numcodecs.Blosc(cname="zstd", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE)
-        # serializer = numcodecs.zarr3.PCodec(level=8, mode_spec="auto")
-        # filter = numcodecs.zarr3.FixedScaleOffset(offset=0, scale=100, dtype="f4", astype="i4")
-        root = zarr.open(str(self.filename), mode="w", zarr_format=2)
+        # compressor = numcodecs.Blosc(cname="zstd", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE)
+        serializer = numcodecs.zarr3.PCodec(level=8, mode_spec="auto")
+        filter = numcodecs.zarr3.FixedScaleOffset(offset=0, scale=100, dtype="f4", astype="i4")
+        root = zarr.open(str(self.filename), mode="w", zarr_format=3)
         # Ensure root is a Group and not an Array (for type checker)
         if not isinstance(root, zarr.Group):
             raise TypeError("Expected root to be a zarr.hierarchy.Group")
@@ -75,9 +75,9 @@ class ZarrWriter(BaseWriter):
             shape=data.shape,
             chunks=chunk_size,
             dtype="f4",
-            compressors=[compressor],
-            # serializer=serializer,
-            # filters=[filter],
+            # compressors=[compressor],
+            serializer=serializer,
+            filters=[filter],
         )
         arr_0[:] = data
 
