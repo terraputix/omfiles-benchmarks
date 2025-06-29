@@ -6,6 +6,7 @@ import typer
 import xarray as xr
 from zarr.core.buffer import NDArrayLike
 
+from om_benchmarks.helpers.AsyncTyper import AsyncTyper
 from om_benchmarks.helpers.bm_writer import bm_write_all_formats
 from om_benchmarks.helpers.era5 import configure_era5_request
 from om_benchmarks.helpers.generate_data import generate_test_data
@@ -20,18 +21,24 @@ from om_benchmarks.helpers.results import BenchmarkResultsManager
 from om_benchmarks.helpers.schemas import RunMetadata
 from om_benchmarks.helpers.script_utils import get_script_dirs
 
+app = AsyncTyper()
 
-def main(
+
+@app.command()
+async def main(
     download_dataset: bool = typer.Option(
-        True, help="Whether to download ERA5 data. If False, must set generate_dataset=True to create synthetic data."
+        True,
+        help="Whether to download ERA5 data. If False, must set generate_dataset=True to create synthetic data.",
     ),
     download_again: bool = typer.Option(False, help="Whether to download the dataset again even if it already exists."),
     target_download: str = typer.Option("downloaded_data.nc", help="Path where downloaded dataset will be saved."),
     generate_dataset: bool = typer.Option(
-        False, help="Whether to generate synthetic data instead of downloading. Only used if download_dataset=False."
+        False,
+        help="Whether to generate synthetic data instead of downloading. Only used if download_dataset=False.",
     ),
     array_size: str = typer.Option(
-        "(100, 100, 200)", help="Size of the array for synthetic data generation in the format '(x, y, z)'."
+        "(100, 100, 200)",
+        help="Size of the array for synthetic data generation in the format '(x, y, z)'.",
     ),
     chunk_size: str = typer.Option("(5, 5, 1440)", help="Chunk size for writing data in the format '(x, y, z)'."),
     iterations: int = typer.Option(1, help="Number of iterations to run for each benchmark."),
@@ -71,7 +78,7 @@ def main(
         chunk_shape=_chunk_size,
         iterations=iterations,
     )
-    write_results = bm_write_all_formats(chunk_size=_chunk_size, metadata=metadata, data=data)
+    write_results = await bm_write_all_formats(chunk_size=_chunk_size, metadata=metadata, data=data)
 
     current_df = results_manager.save_and_display_results(write_results, type="write")
     print_bm_results(results_manager=results_manager, results_df=current_df)
@@ -84,4 +91,4 @@ def main(
 
 
 if __name__ == "__main__":
-    typer.run(main)
+    app()
