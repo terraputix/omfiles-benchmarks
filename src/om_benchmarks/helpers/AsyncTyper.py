@@ -1,3 +1,5 @@
+"""Shamelessly taken from https://github.com/fastapi/typer/issues/950#issuecomment-2646361943"""
+
 from __future__ import annotations
 
 import asyncio

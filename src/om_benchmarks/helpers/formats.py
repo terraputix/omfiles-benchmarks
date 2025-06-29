@@ -1,6 +1,5 @@
 from .io.readers import (
     BaseReader,
-    DaskZarrReader,
     HDF5HidefixReader,
     HDF5Reader,
     NetCDFReader,
@@ -25,7 +24,6 @@ class FormatFactory:
         "h5": HDF5Reader,
         "h5hidefix": HDF5HidefixReader,
         "zarr": ZarrReader,
-        "daskzarr": DaskZarrReader,
         "zarrTensorStore": TensorStoreZarrReader,
         "zarrPythonViaZarrsCodecs": ZarrsCodecsZarrReader,
         "nc": NetCDFReader,

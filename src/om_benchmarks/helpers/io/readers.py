@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 from typing import Literal, Optional, cast
 
-import dask.array as da
 import h5py
 import netCDF4 as nc
 import numpy as np
@@ -153,40 +152,6 @@ class ZarrsCodecsZarrReader(ZarrReader):
         )
         self = await super().create(filename)
         return self
-
-
-class DaskZarrReader(BaseReader):
-    dask_array: da.Array
-
-    @classmethod
-    async def create(cls, filename: str):
-        self = await super().create(filename)
-        # Open the Zarr array using Dask (assumes group/arr_0 pattern)
-        z = zarr.open(str(self.filename), mode="r")
-        if not isinstance(z, zarr.Group):
-            raise TypeError("Expected a zarr Group")
-        array = z["arr_0"]
-        if not isinstance(array, zarr.Array):
-            raise TypeError("Expected a zarr Array")
-        # Wrap with dask
-        self.dask_array = da.from_zarr(array)
-        return self
-
-    async def read(self, index: BasicSelection) -> np.ndarray:
-        # Dask computes in parallel by default
-        return self.dask_array[index].compute(num_workers=8)
-
-    def close(self) -> None:
-        # No explicit close needed for Dask/zarr
-        pass
-
-    @property
-    def shape(self) -> tuple[int, ...]:
-        return cast(tuple[int, ...], self.dask_array.shape)
-
-    @property
-    def chunk_shape(self) -> Optional[tuple[int, ...]]:
-        return self.dask_array.chunks
 
 
 class TensorStoreZarrReader(BaseReader):
