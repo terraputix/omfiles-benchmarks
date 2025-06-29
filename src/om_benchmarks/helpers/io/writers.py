@@ -63,10 +63,10 @@ class HDF5Writer(BaseWriter):
 
 class ZarrWriter(BaseWriter):
     def write(self, data: NDArrayLike, chunk_size: Tuple[int, ...]) -> None:
-        compressor = numcodecs.zarr3.Blosc(cname="zstd", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE)
+        compressor = numcodecs.Blosc(cname="zstd", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE)
         # serializer = numcodecs.zarr3.PCodec(level=8, mode_spec="auto")
         # filter = numcodecs.zarr3.FixedScaleOffset(offset=0, scale=100, dtype="f4", astype="i4")
-        root = zarr.open(str(self.filename), mode="w", zarr_format=3)
+        root = zarr.open(str(self.filename), mode="w", zarr_format=2)
         # Ensure root is a Group and not an Array (for type checker)
         if not isinstance(root, zarr.Group):
             raise TypeError("Expected root to be a zarr.hierarchy.Group")
