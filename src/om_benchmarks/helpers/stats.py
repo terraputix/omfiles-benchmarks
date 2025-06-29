@@ -37,6 +37,7 @@ def _subprocess_target(func, args, kwargs, queue):
     rss_before = get_rss()
     start_time = time.time()
     cpu_start_time = time.process_time()
+    # We need to handle coroutines when we are running them in a subprocess
     if asyncio.iscoroutinefunction(func):
         _result = asyncio.run(func(*args, **kwargs))
     else:
@@ -52,27 +53,22 @@ def _subprocess_target(func, args, kwargs, queue):
 def measure_execution(func: Callable[..., T]) -> Callable[..., Awaitable[MeasurementResult]]:
     @wraps(func)
     async def wrapper(*args, **kwargs) -> MeasurementResult:
-        # Run the blocking code in a thread to avoid blocking the event loop
-        return await asyncio.to_thread(_run_in_subprocess, func, args, kwargs)
+        queue = multiprocessing.Queue()
+        p = multiprocessing.Process(target=_subprocess_target, args=(func, args, kwargs, queue))
+        p.start()
+        p.join()
+        if not queue.empty():
+            elapsed_time, cpu_elapsed_time, memory_delta = queue.get()
+        else:
+            raise RuntimeError("Subprocess did not return results")
+
+        return MeasurementResult(
+            elapsed=elapsed_time,
+            cpu_elapsed=cpu_elapsed_time,
+            memory_delta=memory_delta,
+        )
 
     return wrapper
-
-
-def _run_in_subprocess(func, args, kwargs):
-    queue = multiprocessing.Queue()
-    p = multiprocessing.Process(target=_subprocess_target, args=(func, args, kwargs, queue))
-    p.start()
-    p.join()
-    if not queue.empty():
-        elapsed_time, cpu_elapsed_time, memory_delta = queue.get()
-    else:
-        raise RuntimeError("Subprocess did not return results")
-
-    return MeasurementResult(
-        elapsed=elapsed_time,
-        cpu_elapsed=cpu_elapsed_time,
-        memory_delta=memory_delta,
-    )
 
 
 # stolen from https://github.com/zarrs/zarr_benchmarks/blob/9679f36ca795cce65adc603ae41147324208d3d9/scripts/_run_benchmark.py#L5
