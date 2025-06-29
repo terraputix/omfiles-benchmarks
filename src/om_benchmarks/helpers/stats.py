@@ -87,7 +87,6 @@ def run_multiple_benchmarks(func: Callable[..., MeasurementResult], iterations: 
         times.append(result.elapsed)
         cpu_times.append(result.cpu_elapsed)
         memory_usages.append(result.memory_delta)
-        del result
 
     return BenchmarkStats(
         mean=statistics.mean(times),
