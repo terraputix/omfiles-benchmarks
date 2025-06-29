@@ -19,7 +19,7 @@ write_formats_and_filenames = {
 }
 
 
-def bm_write_all_formats(
+async def bm_write_all_formats(
     chunk_size: tuple, metadata: RunMetadata, data: NDArrayLike
 ) -> dict[str, Tuple[BenchmarkStats, RunMetadata]]:
     write_results: dict[str, Tuple[BenchmarkStats, RunMetadata]] = {}
@@ -31,7 +31,7 @@ def bm_write_all_formats(
             writer.write(data, chunk_size)
 
         try:
-            write_stats = run_multiple_benchmarks(write, metadata.iterations)
+            write_stats = await run_multiple_benchmarks(write, metadata.iterations)
             write_stats.file_size = writer.get_file_size()
             write_results[format_name] = (write_stats, metadata)
         except Exception as e:

@@ -1,5 +1,3 @@
-import asyncio
-
 import typer
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
