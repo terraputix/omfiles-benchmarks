@@ -19,6 +19,7 @@ dependencies = [
     "cdsapi",
     "typer>=0.16.0",
     "hdf5plugin>=5.1.0",
+    "psutil>=7.0.0",
 ]
 
 [dependency-groups]

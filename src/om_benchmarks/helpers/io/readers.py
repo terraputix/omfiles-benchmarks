@@ -44,6 +44,7 @@ class HDF5Reader(BaseReader):
         # Disable chunk caching by setting cache properties
         # Parameters: (chunk_cache_mem_size, chunk_cache_nslots, chunk_cache_w0)
         # Setting size to 0 effectively disables the cache
+        # https://docs.h5py.org/en/stable/high/file.html#chunk-cache
         file = h5py.File(self.filename, "r", rdcc_nbytes=0, rdcc_nslots=0, rdcc_w0=0)
         dataset = file["dataset"]
         if not isinstance(dataset, h5py.Dataset):
