@@ -1,30 +1,29 @@
-from typing import Tuple
+from typing import List, Tuple
 
 from zarr.core.buffer import NDArrayLike
 
 from om_benchmarks.helpers.schemas import BenchmarkStats, RunMetadata
+from om_benchmarks.helpers.script_utils import get_file_path_for_format
 
-from .formats import FormatFactory
+from .formats import AvailableFormats
 from .stats import (
     measure_execution,
     run_multiple_benchmarks,
 )
 
-# Define separate dictionaries for read and write formats and filenames
-write_formats_and_filenames = {
-    "h5": "benchmark_files/data.h5",
-    "zarr": "benchmark_files/data.zarr",
-    "nc": "benchmark_files/data.nc",
-    "om": "benchmark_files/data.om",
-}
-
 
 async def bm_write_all_formats(
-    chunk_size: tuple, metadata: RunMetadata, data: NDArrayLike
-) -> dict[str, Tuple[BenchmarkStats, RunMetadata]]:
-    write_results: dict[str, Tuple[BenchmarkStats, RunMetadata]] = {}
-    for format_name, file in write_formats_and_filenames.items():
-        writer = FormatFactory.create_writer(format_name, file)
+    chunk_size: tuple,
+    metadata: RunMetadata,
+    data: NDArrayLike,
+    formats: List[AvailableFormats],
+) -> dict[AvailableFormats, Tuple[BenchmarkStats, RunMetadata]]:
+    write_results: dict[AvailableFormats, Tuple[BenchmarkStats, RunMetadata]] = {}
+    for format_name in formats:
+        print(f"Benchmarking {format_name.name}...")
+        writer_type = format_name.writer_class
+        file = get_file_path_for_format(writer_type).__str__()
+        writer = writer_type(file)
 
         @measure_execution
         def write():

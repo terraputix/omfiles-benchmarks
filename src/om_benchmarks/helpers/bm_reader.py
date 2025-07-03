@@ -1,32 +1,27 @@
-from typing import Tuple
+from typing import List, Tuple
 
-from om_benchmarks.helpers.formats import FormatFactory
+from om_benchmarks.helpers.formats import AvailableFormats
 from om_benchmarks.helpers.schemas import BenchmarkStats, RunMetadata
+from om_benchmarks.helpers.script_utils import get_file_path_for_format
 from om_benchmarks.helpers.stats import (
     measure_execution,
     run_multiple_benchmarks,
 )
 
-read_formats_and_filenames = {
-    "h5": "benchmark_files/data.h5",
-    # "h5hidefix": "benchmark_files/data.h5",
-    "zarr": "benchmark_files/data.zarr",
-    "zarrTensorStore": "benchmark_files/data.zarr",
-    "zarrPythonViaZarrsCodecs": "benchmark_files/data.zarr",
-    "nc": "benchmark_files/data.nc",
-    "om": "benchmark_files/data.om",
-}
-
 
 async def bm_read_all_formats(
     read_index,
     iterations,
+    formats: List[AvailableFormats],
     plot_read_data: bool = False,
-) -> dict[str, Tuple[BenchmarkStats, RunMetadata]]:
-    read_results: dict[str, Tuple[BenchmarkStats, RunMetadata]] = {}
-    for format_name, file in read_formats_and_filenames.items():
-        print(f"Benchmarking {format_name}...")
-        reader = await FormatFactory.create_reader(format_name, file)
+) -> dict[AvailableFormats, Tuple[BenchmarkStats, RunMetadata]]:
+    read_results: dict[AvailableFormats, Tuple[BenchmarkStats, RunMetadata]] = {}
+    for format_name in formats:
+        print(f"Benchmarking {format_name.name}...")
+        reader_type = format_name.reader_class
+        file = get_file_path_for_format(reader_type).__str__()
+        print(f"Reading file {file}")
+        reader = await reader_type.create(file)
 
         @measure_execution
         async def read():

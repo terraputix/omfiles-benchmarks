@@ -4,6 +4,8 @@ from typing import Any, Dict, Optional, Tuple
 
 import polars as pl
 
+from om_benchmarks.helpers.formats import AvailableFormats
+
 
 @dataclass
 class BenchmarkStats:
@@ -61,14 +63,18 @@ class BenchmarkRecord:
 
     @classmethod
     def from_benchmark_stats(
-        cls, stats: BenchmarkStats, format_name: str, operation: str, run_metadata: "RunMetadata"
+        cls,
+        stats: BenchmarkStats,
+        format_name: AvailableFormats,
+        operation: str,
+        run_metadata: "RunMetadata",
     ) -> "BenchmarkRecord":
         """Convert BenchmarkStats to BenchmarkRecord"""
         return cls(
             run_id=run_metadata.run_id,
             timestamp=run_metadata.timestamp,
             operation=operation,
-            format=format_name,
+            format=format_name.name,
             array_shape=run_metadata.array_shape_str,
             chunk_shape=run_metadata.chunk_shape_str,
             iterations=run_metadata.iterations,

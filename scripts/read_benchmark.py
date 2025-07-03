@@ -2,6 +2,7 @@ import typer
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
 from om_benchmarks.helpers.bm_reader import bm_read_all_formats
+from om_benchmarks.helpers.constants import DEFAULT_READ_FORMATS
 from om_benchmarks.helpers.parse_tuple import parse_tuple
 from om_benchmarks.helpers.plotting import (
     create_and_save_memory_usage_chart,
@@ -25,6 +26,8 @@ async def main(
         False, help="If True, skips running benchmarks and only plots results from the last saved benchmark run."
     ),
 ):
+    # FIXME: Improve format configuration
+    formats = DEFAULT_READ_FORMATS
     _read_index = parse_tuple(read_index)
     del read_index
     print("Read index:", _read_index)
@@ -33,7 +36,7 @@ async def main(
     results_dir, plots_dir = get_script_dirs(__file__)
     results_manager = BenchmarkResultsManager(results_dir)
     if not plot_only:
-        read_results = await bm_read_all_formats(_read_index, iterations)
+        read_results = await bm_read_all_formats(_read_index, iterations, formats)
         current_df = results_manager.save_and_display_results(read_results, type="read")
     else:
         # Load results from file

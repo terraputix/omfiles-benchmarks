@@ -1,3 +1,5 @@
+"""Implements a unified interface for reading data from various formats."""
+
 from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 from typing import Literal, Optional, cast
@@ -31,6 +33,11 @@ class BaseReader(ABC):
     def close(self) -> None:
         raise NotImplementedError("The close method must be implemented by subclasses")
 
+    @staticmethod
+    @abstractmethod
+    def file_extension() -> str:
+        raise NotImplementedError("The file_extension property must be implemented by subclasses")
+
     @abstractproperty
     def shape(self) -> tuple[int, ...]:
         raise NotImplementedError("The shape property must be implemented by subclasses")
@@ -63,6 +70,10 @@ class HDF5Reader(BaseReader):
     def close(self) -> None:
         self.h5_reader.file.close()
 
+    @staticmethod
+    def file_extension() -> str:
+        return ".h5"
+
     @property
     def shape(self) -> tuple[int, ...]:
         return self.h5_reader.shape
@@ -86,6 +97,10 @@ class HDF5HidefixReader(BaseReader):
 
     def close(self) -> None:
         self.h5_reader.close()
+
+    @staticmethod
+    def file_extension() -> str:
+        return ".h5"
 
     @property
     def shape(self) -> tuple[int, ...]:
@@ -119,6 +134,10 @@ class ZarrReader(BaseReader):
 
     def close(self) -> None:
         self.zarr_reader.store.close()
+
+    @staticmethod
+    def file_extension() -> str:
+        return ".zarr"
 
     @property
     def shape(self) -> tuple[int, ...]:
@@ -181,6 +200,10 @@ class TensorStoreZarrReader(BaseReader):
     def close(self) -> None:
         pass
 
+    @staticmethod
+    def file_extension() -> str:
+        return ".zarr"
+
     @property
     def shape(self) -> tuple[int, ...]:
         return self.ts_reader.shape
@@ -209,6 +232,10 @@ class NetCDFReader(BaseReader):
     def close(self) -> None:
         self.nc_reader.close()
 
+    @staticmethod
+    def file_extension() -> str:
+        return ".nc"
+
     @property
     def shape(self) -> tuple[int, ...]:
         return self.nc_reader.variables["dataset"].shape
@@ -235,10 +262,14 @@ class OMReader(BaseReader):
 
     async def read(self, index: BasicSelection) -> np.ndarray:
         # return await self.om_reader.read_concurrent(index)
-        return self.om_reader[index]
+        return self.om_reader[0:5, 0:5, ...]
 
     def close(self) -> None:
         self.om_reader.close()
+
+    @staticmethod
+    def file_extension() -> str:
+        return ".om"
 
     @property
     def shape(self) -> tuple[int, ...]:

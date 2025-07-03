@@ -1,3 +1,6 @@
+from enum import Enum
+from typing import Dict, Type
+
 from .io.readers import (
     BaseReader,
     HDF5HidefixReader,
@@ -11,33 +14,43 @@ from .io.readers import (
 from .io.writers import BaseWriter, HDF5Writer, NetCDFWriter, OMWriter, ZarrWriter
 
 
-class FormatFactory:
-    # fmt: off
-    writers = {
-        "h5": HDF5Writer,
-        "zarr": ZarrWriter,
-        "nc": NetCDFWriter,
-        "om": OMWriter
-    }
+class AvailableFormats(Enum):
+    HDF5 = "h5"
+    HDF5Hidefix = "h5hidefix"
+    Zarr = "zarr"
+    ZarrTensorStore = "zarrTensorStore"
+    ZarrPythonViaZarrsCodecs = "zarrPythonViaZarrsCodecs"
+    NetCDF = "nc"
+    OM = "om"
 
-    readers = {
-        "h5": HDF5Reader,
-        "h5hidefix": HDF5HidefixReader,
-        "zarr": ZarrReader,
-        "zarrTensorStore": TensorStoreZarrReader,
-        "zarrPythonViaZarrsCodecs": ZarrsCodecsZarrReader,
-        "nc": NetCDFReader,
-        "om": OMReader
-    }
+    @property
+    def reader_class(self) -> Type[BaseReader]:
+        """Get the reader class for this format."""
+        if self not in _reader_classes:
+            raise ValueError(f"No reader available for format: {self.name}")
+        return _reader_classes[self]
 
-    @classmethod
-    def create_writer(cls, format_name: str, filename: str) -> BaseWriter:
-        if format_name not in cls.writers:
-            raise ValueError(f"Unknown format: {format_name}")
-        return cls.writers[format_name](filename)
+    @property
+    def writer_class(self) -> Type[BaseWriter]:
+        """Get the writer class for this format, or None if writing is not supported."""
+        if self not in _writer_classes:
+            raise ValueError(f"No writer available for format: {self.name}")
+        return _writer_classes[self]
 
-    @classmethod
-    async def create_reader(cls, format_name: str, filename: str) -> BaseReader:
-        if format_name not in cls.readers:
-            raise ValueError(f"Unknown format: {format_name}")
-        return await cls.readers[format_name].create(filename)
+
+_writer_classes: Dict[AvailableFormats, Type[BaseWriter]] = {
+    AvailableFormats.HDF5: HDF5Writer,
+    AvailableFormats.Zarr: ZarrWriter,
+    AvailableFormats.NetCDF: NetCDFWriter,
+    AvailableFormats.OM: OMWriter,
+}
+
+_reader_classes: Dict[AvailableFormats, Type[BaseReader]] = {
+    AvailableFormats.HDF5: HDF5Reader,
+    AvailableFormats.HDF5Hidefix: HDF5HidefixReader,
+    AvailableFormats.Zarr: ZarrReader,
+    AvailableFormats.ZarrTensorStore: TensorStoreZarrReader,
+    AvailableFormats.ZarrPythonViaZarrsCodecs: ZarrsCodecsZarrReader,
+    AvailableFormats.NetCDF: NetCDFReader,
+    AvailableFormats.OM: OMReader,
+}

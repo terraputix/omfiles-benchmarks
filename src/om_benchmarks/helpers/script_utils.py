@@ -1,7 +1,45 @@
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Type, Union
 
-from om_benchmarks.helpers.constants import PLOTS_DIR, RESULTS_DIR
+from om_benchmarks.helpers.constants import FILES_DIR, PLOTS_DIR, RESULTS_DIR
+from om_benchmarks.helpers.io.readers import BaseReader
+from om_benchmarks.helpers.io.writers import BaseWriter
+
+
+def get_file_path_for_format(reader_writer: Type[Union[BaseWriter, BaseReader]]) -> Path:
+    return Path(f"{FILES_DIR}/data").with_suffix(f"{reader_writer.file_extension()}")
+
+
+def create_directory_with_confirmation(
+    directory: Path,
+) -> None:
+    """
+    Create a directory if it doesn't exist, asking for user confirmation first.
+
+    Args:
+        directory: The directory path to create
+
+    Raises:
+        RuntimeError: If the user doesn't confirm directory creation
+    """
+    # Check if the directory already exists
+    if not directory.exists():
+        confirmation = (
+            input(
+                f"The directory '{directory}' does not exist. Do you want to create it (and its parent-directories)? [y/N]: "
+            )
+            .strip()
+            .lower()
+        )
+
+        if confirmation in ("y", "yes"):
+            directory.mkdir(parents=True, exist_ok=True)
+            print(f"Created directory: {directory}")
+        else:
+            raise RuntimeError(
+                f"Directory '{directory}' is required but does not exist. "
+                f"Please create it manually or run the script again and confirm creation."
+            )
 
 
 def get_script_dirs(calling_file: str) -> Tuple[Path, Path]:
@@ -18,8 +56,8 @@ def get_script_dirs(calling_file: str) -> Tuple[Path, Path]:
     results_subdir = Path(RESULTS_DIR) / script_name
     plots_subdir = Path(PLOTS_DIR) / script_name
 
-    # Create directories if they don't exist
-    results_subdir.mkdir(parents=True, exist_ok=True)
-    plots_subdir.mkdir(parents=True, exist_ok=True)
+    # Create directories with confirmation if they don't exist
+    create_directory_with_confirmation(results_subdir)
+    create_directory_with_confirmation(plots_subdir)
 
     return results_subdir, plots_subdir

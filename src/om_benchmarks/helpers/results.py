@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple
 import polars as pl
 
 from om_benchmarks.helpers.constants import RESULTS_DIR
+from om_benchmarks.helpers.formats import AvailableFormats
 
 from .schemas import BenchmarkRecord, BenchmarkStats, RunMetadata
 
@@ -20,7 +21,7 @@ class BenchmarkResultsManager:
         self.last_run_path = self.results_dir / "benchmark_results_last.csv"
 
     def save_and_display_results(
-        self, results: Dict[str, Tuple[BenchmarkStats, RunMetadata]], type: str
+        self, results: Dict[AvailableFormats, Tuple[BenchmarkStats, RunMetadata]], type: str
     ) -> pl.DataFrame:
         """Save benchmark results to CSV and return DataFrame for display"""
 

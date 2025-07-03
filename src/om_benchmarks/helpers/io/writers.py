@@ -1,3 +1,5 @@
+"""Implements a unified interface for writing data to various formats."""
+
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -15,6 +17,11 @@ from zarr.core.buffer import NDArrayLike
 class BaseWriter(ABC):
     def __init__(self, filename: str):
         self.filename = Path(filename)
+
+    @staticmethod
+    @abstractmethod
+    def file_extension() -> str:
+        raise NotImplementedError("The file_extension property must be implemented by subclasses")
 
     @abstractmethod
     def write(self, data: NDArrayLike, chunk_size: Tuple[int, ...]) -> None:
@@ -41,6 +48,10 @@ class BaseWriter(ABC):
 
 
 class HDF5Writer(BaseWriter):
+    @staticmethod
+    def file_extension() -> str:
+        return ".h5"
+
     def write(
         self,
         data: NDArrayLike,
@@ -62,6 +73,10 @@ class HDF5Writer(BaseWriter):
 
 
 class ZarrWriter(BaseWriter):
+    @staticmethod
+    def file_extension() -> str:
+        return ".zarr"
+
     def write(self, data: NDArrayLike, chunk_size: Tuple[int, ...]) -> None:
         compressor = numcodecs.Blosc(cname="zstd", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE)
         # serializer = numcodecs.zarr3.PCodec(level=8, mode_spec="auto")
@@ -83,6 +98,10 @@ class ZarrWriter(BaseWriter):
 
 
 class NetCDFWriter(BaseWriter):
+    @staticmethod
+    def file_extension() -> str:
+        return ".nc"
+
     def write(self, data: NDArrayLike, chunk_size: Tuple[int, ...]) -> None:
         with nc.Dataset(self.filename, "w", format="NETCDF4") as ds:
             dimension_names = tuple(f"dim{i}" for i in range(data.ndim))
@@ -100,6 +119,10 @@ class NetCDFWriter(BaseWriter):
 
 
 class OMWriter(BaseWriter):
+    @staticmethod
+    def file_extension() -> str:
+        return ".om"
+
     def write(self, data: NDArrayLike, chunk_size: Tuple[int, ...]) -> None:
         writer = om.OmFilePyWriter(str(self.filename))
         variable = writer.write_array(
