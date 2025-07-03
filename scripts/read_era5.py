@@ -3,7 +3,7 @@ from typing import cast
 import typer
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
-from om_benchmarks.helpers.bm_reader import bm_read_all_formats
+from om_benchmarks.helpers.bm_reader import BMResultsDict, bm_read_all_formats, bm_read_format
 from om_benchmarks.helpers.constants import DEFAULT_READ_FORMATS
 from om_benchmarks.helpers.parse_tuple import parse_tuple
 from om_benchmarks.helpers.plotting import (
@@ -25,15 +25,13 @@ async def main(
     ),
     iterations: int = typer.Option(10, help="Number of times to repeat each benchmark for more reliable results."),
     chunk_size: str = typer.Option("(5, 5, 1440)", help="Chunk size for writing data in the format '(x, y, z)'."),
-    plot_only: bool = typer.Option(
-        False, help="If True, skips running benchmarks and only plots results from the last saved benchmark run."
-    ),
 ):
     # FIXME: Improve format configuration
     formats = DEFAULT_READ_FORMATS
     # FIXME: Find a way to effectively benchmark against various chunk sizes.
     _chunk_size = cast(tuple[int], parse_tuple(chunk_size))
     del chunk_size
+    print(f"Chunk size: {_chunk_size}")
 
     _read_index = parse_tuple(read_index)
     del read_index
@@ -42,12 +40,13 @@ async def main(
     # Initialize results manager
     results_dir, plots_dir = get_script_dirs(__file__)
     results_manager = BenchmarkResultsManager(results_dir)
-    if not plot_only:
-        read_results = await bm_read_all_formats(_read_index, iterations, formats)
-        current_df = results_manager.save_and_display_results(read_results, type="read")
-    else:
-        # Load results from file
-        current_df = results_manager.load_last_results()
+
+    for format in formats:
+        read_results: BMResultsDict = {}
+        await bm_read_format(_read_index, iterations, format, False, read_results)
+
+    read_results = await bm_read_all_formats(_read_index, iterations, formats)
+    current_df = results_manager.save_and_display_results(read_results, type="read")
 
     print_bm_results(results_manager=results_manager, results_df=current_df)
     # Create visualizations

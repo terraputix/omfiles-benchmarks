@@ -6,6 +6,11 @@ from om_benchmarks.helpers.io.readers import BaseReader
 from om_benchmarks.helpers.io.writers import BaseWriter
 
 
+def get_era5_path_for_format(reader_writer: Type[Union[BaseWriter, BaseReader]], chunk_size: tuple[int]) -> Path:
+    chunk_size_str = "_".join(map(str, chunk_size))
+    return Path(f"{FILES_DIR}/era5_{chunk_size_str}").with_suffix(f"{reader_writer.file_extension()}")
+
+
 def get_file_path_for_format(reader_writer: Type[Union[BaseWriter, BaseReader]]) -> Path:
     return Path(f"{FILES_DIR}/data").with_suffix(f"{reader_writer.file_extension()}")
 
