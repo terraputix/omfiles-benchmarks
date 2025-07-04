@@ -1,9 +1,13 @@
+import os
 from typing import cast
 
 import typer
+import xarray as xr
+from zarr.core.buffer import NDArrayLike
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
-from om_benchmarks.helpers.bm_reader import BMResultsDict, bm_read_all_formats, bm_read_format
+from om_benchmarks.helpers.bm_reader import BMResultsDict, bm_read_format
+from om_benchmarks.helpers.bm_writer import bm_write_format
 from om_benchmarks.helpers.constants import DEFAULT_READ_FORMATS
 from om_benchmarks.helpers.parse_tuple import parse_tuple
 from om_benchmarks.helpers.plotting import (
@@ -12,19 +16,20 @@ from om_benchmarks.helpers.plotting import (
 )
 from om_benchmarks.helpers.prints import print_bm_results
 from om_benchmarks.helpers.results import BenchmarkResultsManager
-from om_benchmarks.helpers.script_utils import get_script_dirs
+from om_benchmarks.helpers.schemas import RunMetadata
+from om_benchmarks.helpers.script_utils import get_era5_path_for_format, get_script_dirs
 
 app = AsyncTyper()
 
 
 @app.command()
 async def main(
+    chunk_size: str = typer.Option("(5, 5, 1440)", help="Chunk size for writing data in the format '(x, y, z)'."),
     read_index: str = typer.Option(
         "(100, 200, 0..20)",
         help="Index range to read from datasets in the format '(x, y, z)' or '(x, y, start..end)' for slices.",
     ),
     iterations: int = typer.Option(10, help="Number of times to repeat each benchmark for more reliable results."),
-    chunk_size: str = typer.Option("(5, 5, 1440)", help="Chunk size for writing data in the format '(x, y, z)'."),
 ):
     # FIXME: Improve format configuration
     formats = DEFAULT_READ_FORMATS
@@ -41,11 +46,31 @@ async def main(
     results_dir, plots_dir = get_script_dirs(__file__)
     results_manager = BenchmarkResultsManager(results_dir)
 
+    read_results: BMResultsDict = {}
     for format in formats:
-        read_results: BMResultsDict = {}
-        await bm_read_format(_read_index, iterations, format, False, read_results)
+        reader_type = format.reader_class
+        file_path = get_era5_path_for_format(reader_type, chunk_size=_chunk_size)
+        if not os.path.exists(file_path):
+            target_download = "downloaded_data.nc"
+            if not os.path.exists(target_download):
+                raise FileNotFoundError(f"File not found: {target_download}")
 
-    read_results = await bm_read_all_formats(_read_index, iterations, formats)
+            print(f"Reading t2m variable from {target_download}...")
+            ds = xr.open_dataset(target_download)
+            data = cast(NDArrayLike, ds["t2m"].values)
+            print(f"Loaded t2m data with shape: {data.shape}")
+
+            metadata = RunMetadata(
+                array_shape=data.shape,
+                chunk_shape=_chunk_size,
+                iterations=1,
+            )
+            print(f"File not found: {file_path}. Generating it ...")
+            await bm_write_format(_chunk_size, metadata, format.writer_class, file_path.__str__(), data)
+
+        result = await bm_read_format(_read_index, iterations, reader_type, file_path.__str__(), False)
+        read_results[format] = result
+
     current_df = results_manager.save_and_display_results(read_results, type="read")
 
     print_bm_results(results_manager=results_manager, results_df=current_df)

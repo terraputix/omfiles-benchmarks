@@ -1,7 +1,9 @@
-from typing import List, Tuple
+from typing import List, Tuple, Type
 
 from zarr.core.buffer import NDArrayLike
 
+from om_benchmarks.helpers.bm_reader import BMResult
+from om_benchmarks.helpers.io.writers import BaseWriter
 from om_benchmarks.helpers.schemas import BenchmarkStats, RunMetadata
 from om_benchmarks.helpers.script_utils import get_file_path_for_format
 
@@ -10,6 +12,26 @@ from .stats import (
     measure_execution,
     run_multiple_benchmarks,
 )
+
+
+async def bm_write_format(
+    chunk_size: tuple,
+    metadata: RunMetadata,
+    writer_type: Type[BaseWriter],
+    file: str,
+    data: NDArrayLike,
+) -> BMResult:
+    print(f"Writing file {file}...")
+
+    writer = writer_type(file)
+
+    @measure_execution
+    def write():
+        writer.write(data, chunk_size)
+
+    write_stats = await run_multiple_benchmarks(write, metadata.iterations)
+    write_stats.file_size = writer.get_file_size()
+    return (write_stats, metadata)
 
 
 async def bm_write_all_formats(
@@ -23,17 +45,7 @@ async def bm_write_all_formats(
         print(f"Benchmarking {format_name.name}...")
         writer_type = format_name.writer_class
         file = get_file_path_for_format(writer_type).__str__()
-        writer = writer_type(file)
 
-        @measure_execution
-        def write():
-            writer.write(data, chunk_size)
-
-        try:
-            write_stats = await run_multiple_benchmarks(write, metadata.iterations)
-            write_stats.file_size = writer.get_file_size()
-            write_results[format_name] = (write_stats, metadata)
-        except Exception as e:
-            print(f"Error with {format_name}: {e}")
+        write_results[format_name] = await bm_write_format(chunk_size, metadata, writer_type, file, data)
 
     return write_results
