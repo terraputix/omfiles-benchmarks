@@ -1,3 +1,11 @@
+import os
+from functools import lru_cache
+from typing import cast
+
+import xarray as xr
+from zarr.core.buffer import NDArrayLike
+
+
 def configure_era5_request():
     dataset = "reanalysis-era5-single-levels"
     request = {
@@ -71,3 +79,15 @@ def configure_era5_request():
         "download_format": "unarchived",
     }
     return dataset, request
+
+
+@lru_cache(maxsize=1)
+def read_era5_data(file) -> NDArrayLike:
+    if not os.path.exists(file):
+        raise FileNotFoundError(f"File not found: {file}")
+
+    print(f"Reading t2m variable from {file}...")
+    ds = xr.open_dataset(file)
+    data = cast(NDArrayLike, ds["t2m"].values)
+    print(f"Loaded t2m data with shape: {data.shape}")
+    return data

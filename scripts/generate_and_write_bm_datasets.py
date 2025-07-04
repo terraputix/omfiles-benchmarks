@@ -3,13 +3,11 @@ from typing import cast
 
 import cdsapi
 import typer
-import xarray as xr
-from zarr.core.buffer import NDArrayLike
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
 from om_benchmarks.helpers.bm_writer import bm_write_all_formats
 from om_benchmarks.helpers.constants import DEFAULT_WRITE_FORMATS
-from om_benchmarks.helpers.era5 import configure_era5_request
+from om_benchmarks.helpers.era5 import configure_era5_request, read_era5_data
 from om_benchmarks.helpers.generate_data import generate_test_data
 from om_benchmarks.helpers.parse_tuple import parse_tuple
 from om_benchmarks.helpers.plotting import (
@@ -58,10 +56,7 @@ async def main(
             client = cdsapi.Client()
             client.retrieve(dataset, request).download(target_download)
 
-        print(f"Reading t2m variable from {target_download}...")
-        ds = xr.open_dataset(target_download)
-        data = cast(NDArrayLike, ds["t2m"].values)
-        print(f"Loaded t2m data with shape: {data.shape}")
+        data = read_era5_data(target_download)
 
     elif generate_dataset:
         # Generate data and run benchmarks
