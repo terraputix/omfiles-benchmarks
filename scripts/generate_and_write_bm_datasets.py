@@ -3,12 +3,11 @@ from typing import cast
 
 import cdsapi
 import typer
-import xarray as xr
-from zarr.core.buffer import NDArrayLike
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
 from om_benchmarks.helpers.bm_writer import bm_write_all_formats
-from om_benchmarks.helpers.era5 import configure_era5_request
+from om_benchmarks.helpers.era5 import configure_era5_request, read_era5_data
+from om_benchmarks.helpers.formats import AvailableFormats
 from om_benchmarks.helpers.generate_data import generate_test_data
 from om_benchmarks.helpers.parse_tuple import parse_tuple
 from om_benchmarks.helpers.plotting import (
@@ -16,12 +15,19 @@ from om_benchmarks.helpers.plotting import (
     create_and_save_memory_usage_chart,
     create_and_save_perf_chart,
 )
-from om_benchmarks.helpers.prints import print_bm_results, print_data_info
-from om_benchmarks.helpers.results import BenchmarkResultsManager
+from om_benchmarks.helpers.prints import print_data_info
+from om_benchmarks.helpers.results import BenchmarkResultsDF
 from om_benchmarks.helpers.schemas import RunMetadata
 from om_benchmarks.helpers.script_utils import get_script_dirs
 
 app = AsyncTyper()
+
+WRITE_FORMATS: list[AvailableFormats] = [
+    AvailableFormats.HDF5,
+    AvailableFormats.Zarr,
+    AvailableFormats.NetCDF,
+    AvailableFormats.OM,
+]
 
 
 @app.command()
@@ -55,10 +61,7 @@ async def main(
             client = cdsapi.Client()
             client.retrieve(dataset, request).download(target_download)
 
-        print(f"Reading t2m variable from {target_download}...")
-        ds = xr.open_dataset(target_download)
-        data = cast(NDArrayLike, ds["t2m"].values)
-        print(f"Loaded t2m data with shape: {data.shape}")
+        data = read_era5_data(target_download)
 
     elif generate_dataset:
         # Generate data and run benchmarks
@@ -72,20 +75,25 @@ async def main(
 
     # Run benchmarks
     results_dir, plots_dir = get_script_dirs(__file__)
-    results_manager = BenchmarkResultsManager(results_dir)
+    results_df = BenchmarkResultsDF(results_dir)
     metadata = RunMetadata(
         array_shape=data.shape,
         chunk_shape=_chunk_size,
         iterations=iterations,
     )
-    write_results = await bm_write_all_formats(chunk_size=_chunk_size, metadata=metadata, data=data)
+    write_results = await bm_write_all_formats(
+        chunk_size=_chunk_size,
+        metadata=metadata,
+        data=data,
+        formats=WRITE_FORMATS,
+    )
 
-    current_df = results_manager.save_and_display_results(write_results, type="write")
-    print_bm_results(results_manager=results_manager, results_df=current_df)
+    results_df.append(write_results)
+    results_df.print_summary()
     # Create visualizations
-    create_and_save_perf_chart(current_df, plots_dir)
-    create_and_save_file_size_chart(current_df, plots_dir)
-    create_and_save_memory_usage_chart(current_df, plots_dir)
+    create_and_save_perf_chart(results_df.df, plots_dir)
+    create_and_save_file_size_chart(results_df.df, plots_dir)
+    create_and_save_memory_usage_chart(results_df.df, plots_dir)
 
     print("All formats saved successfully!")
 
