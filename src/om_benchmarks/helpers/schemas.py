@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Literal, Optional, Tuple
+from typing import Literal, Optional, Tuple
 
 import polars as pl
 
@@ -60,10 +60,6 @@ class BenchmarkRecord:
     file_size_bytes: float
 
     @classmethod
-    def polars_df_schema(cls) -> pl.Schema:
-        return BENCHMARK_SCHEMA
-
-    @classmethod
     def from_benchmark_stats(
         cls,
         stats: BenchmarkStats,
@@ -89,26 +85,6 @@ class BenchmarkRecord:
             memory_usage_bytes=stats.memory_usage,
             file_size_bytes=stats.file_size,
         )
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for DataFrame creation"""
-        return {
-            "run_id": self.run_id,
-            "timestamp": self.timestamp,
-            "operation": self.operation,
-            "format": self.format,
-            "array_shape": self.array_shape,
-            "chunk_shape": self.chunk_shape,
-            "iterations": self.iterations,
-            "mean_time": self.mean_time,
-            "std_time": self.std_time,
-            "min_time": self.min_time,
-            "max_time": self.max_time,
-            "cpu_mean_time": self.cpu_mean_time,
-            "cpu_std_time": self.cpu_std_time,
-            "memory_usage_bytes": self.memory_usage_bytes,
-            "file_size_bytes": self.file_size_bytes,
-        }
 
 
 @dataclass

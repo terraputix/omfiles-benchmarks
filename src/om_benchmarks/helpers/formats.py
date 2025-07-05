@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Dict, Type
 
-from .io.readers import (
+from om_benchmarks.helpers.io.readers import (
     BaseReader,
     HDF5HidefixReader,
     HDF5Reader,
@@ -11,7 +11,7 @@ from .io.readers import (
     ZarrReader,
     ZarrsCodecsZarrReader,
 )
-from .io.writers import BaseWriter, HDF5Writer, NetCDFWriter, OMWriter, ZarrWriter
+from om_benchmarks.helpers.io.writers import BaseWriter, HDF5Writer, NetCDFWriter, OMWriter, ZarrWriter
 
 
 class AvailableFormats(Enum):

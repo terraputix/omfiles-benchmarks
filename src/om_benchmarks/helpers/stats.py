@@ -11,7 +11,7 @@ from typing import Awaitable, Callable, List, NamedTuple, TypeVar
 
 import psutil
 
-from .schemas import BenchmarkStats
+from om_benchmarks.helpers.schemas import BenchmarkStats
 
 T = TypeVar("T")
 

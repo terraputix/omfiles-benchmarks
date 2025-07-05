@@ -4,23 +4,9 @@ import altair as alt
 import polars as pl
 
 # from PIL import Image
-from om_benchmarks.helpers.constants import PLOTS_DIR
 
 alt.data_transformers.enable("json")
 alt.themes.enable("opaque")
-
-
-def create_benchmark_charts(df: pl.DataFrame, save_dir: str | Path = PLOTS_DIR) -> None:
-    """Create benchmark visualization charts using Altair with proper column names"""
-
-    if not isinstance(save_dir, Path):
-        save_dir = Path(save_dir)
-
-    create_and_save_perf_chart(df, save_dir)
-    create_and_save_file_size_chart(df, save_dir)
-    create_and_save_memory_usage_chart(df, save_dir)
-
-    print(f"Charts saved to {save_dir}")
 
 
 def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str = "performance_chart.png"):
