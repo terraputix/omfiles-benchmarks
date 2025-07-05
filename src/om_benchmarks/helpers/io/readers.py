@@ -237,7 +237,7 @@ class OMReader(BaseReader):
 
     async def read(self, index: BasicSelection) -> np.ndarray:
         # return await self.om_reader.read_concurrent(index)
-        return self.om_reader[0:5, 0:5, ...]
+        return self.om_reader[index]
 
     def close(self) -> None:
         self.om_reader.close()
