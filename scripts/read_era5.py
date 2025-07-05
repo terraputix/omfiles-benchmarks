@@ -21,9 +21,9 @@ app = AsyncTyper()
 
 READ_FORMATS: list[AvailableFormats] = [
     AvailableFormats.HDF5,
-    AvailableFormats.HDF5Hidefix,
+    # AvailableFormats.HDF5Hidefix,
     AvailableFormats.Zarr,
-    AvailableFormats.ZarrTensorStore,
+    # AvailableFormats.ZarrTensorStore,
     AvailableFormats.ZarrPythonViaZarrsCodecs,
     AvailableFormats.NetCDF,
     AvailableFormats.OM,
