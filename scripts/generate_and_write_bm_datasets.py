@@ -6,8 +6,8 @@ import typer
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
 from om_benchmarks.helpers.bm_writer import bm_write_all_formats
-from om_benchmarks.helpers.constants import DEFAULT_WRITE_FORMATS
 from om_benchmarks.helpers.era5 import configure_era5_request, read_era5_data
+from om_benchmarks.helpers.formats import AvailableFormats
 from om_benchmarks.helpers.generate_data import generate_test_data
 from om_benchmarks.helpers.parse_tuple import parse_tuple
 from om_benchmarks.helpers.plotting import (
@@ -21,6 +21,13 @@ from om_benchmarks.helpers.schemas import RunMetadata
 from om_benchmarks.helpers.script_utils import get_script_dirs
 
 app = AsyncTyper()
+
+WRITE_FORMATS: list[AvailableFormats] = [
+    AvailableFormats.HDF5,
+    AvailableFormats.Zarr,
+    AvailableFormats.NetCDF,
+    AvailableFormats.OM,
+]
 
 
 @app.command()
@@ -42,8 +49,6 @@ async def main(
     chunk_size: str = typer.Option("(5, 5, 1440)", help="Chunk size for writing data in the format '(x, y, z)'."),
     iterations: int = typer.Option(1, help="Number of iterations to run for each benchmark."),
 ):
-    # FIXME: Improve format configuration
-    formats = DEFAULT_WRITE_FORMATS
     # FIXME: Find a way to effectively benchmark against various chunk sizes.
     _chunk_size = cast(tuple[int], parse_tuple(chunk_size))
     del chunk_size
@@ -76,7 +81,12 @@ async def main(
         chunk_shape=_chunk_size,
         iterations=iterations,
     )
-    write_results = await bm_write_all_formats(chunk_size=_chunk_size, metadata=metadata, data=data, formats=formats)
+    write_results = await bm_write_all_formats(
+        chunk_size=_chunk_size,
+        metadata=metadata,
+        data=data,
+        formats=WRITE_FORMATS,
+    )
 
     results_df.append(write_results)
     results_df.print_summary()

@@ -11,7 +11,7 @@ async def bm_read_format(
     iterations,
     format: AvailableFormats,
     file: str,
-    plot_read_data: bool = False,
+    print_read_data: bool = False,
 ) -> BenchmarkRecord:
     print(f"Reading file {file}")
     reader_type = format.reader_class
@@ -22,7 +22,7 @@ async def bm_read_format(
         return await reader.read(read_index)
 
     try:
-        if plot_read_data:
+        if print_read_data:
             sample_data = await reader.read(read_index)  # Get sample data for verification
             print(sample_data)
         read_stats = await run_multiple_benchmarks(read, iterations)

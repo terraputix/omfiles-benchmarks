@@ -4,7 +4,7 @@ import typer
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
 from om_benchmarks.helpers.bm_reader import bm_read_all_formats
-from om_benchmarks.helpers.constants import DEFAULT_READ_FORMATS
+from om_benchmarks.helpers.formats import AvailableFormats
 from om_benchmarks.helpers.parse_tuple import parse_tuple
 from om_benchmarks.helpers.plotting import (
     create_and_save_memory_usage_chart,
@@ -14,6 +14,16 @@ from om_benchmarks.helpers.results import BenchmarkResultsDF
 from om_benchmarks.helpers.script_utils import get_script_dirs
 
 app = AsyncTyper()
+
+READ_FORMATS: list[AvailableFormats] = [
+    AvailableFormats.HDF5,
+    AvailableFormats.HDF5Hidefix,
+    AvailableFormats.Zarr,
+    AvailableFormats.ZarrTensorStore,
+    AvailableFormats.ZarrPythonViaZarrsCodecs,
+    AvailableFormats.NetCDF,
+    AvailableFormats.OM,
+]
 
 
 @app.command()
@@ -28,8 +38,6 @@ async def main(
         False, help="If True, skips running benchmarks and only plots results from the last saved benchmark run."
     ),
 ):
-    # FIXME: Improve format configuration
-    formats = DEFAULT_READ_FORMATS
     # FIXME: Find a way to effectively benchmark against various chunk sizes.
     _chunk_size = cast(tuple[int], parse_tuple(chunk_size))
     del chunk_size
@@ -38,11 +46,11 @@ async def main(
     del read_index
     print("Read index:", _read_index)
 
-    # Initialize results manager
     results_dir, plots_dir = get_script_dirs(__file__)
     results_df = BenchmarkResultsDF(results_dir)
+
     if not plot_only:
-        read_results = await bm_read_all_formats(_read_index, iterations, formats)
+        read_results = await bm_read_all_formats(_read_index, iterations, READ_FORMATS)
         results_df.append(read_results)
         results_df.save_results()
     else:

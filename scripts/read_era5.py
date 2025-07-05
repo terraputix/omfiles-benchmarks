@@ -6,8 +6,8 @@ import typer
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
 from om_benchmarks.helpers.bm_reader import bm_read_format
 from om_benchmarks.helpers.bm_writer import bm_write_format
-from om_benchmarks.helpers.constants import DEFAULT_READ_FORMATS
 from om_benchmarks.helpers.era5 import read_era5_data
+from om_benchmarks.helpers.formats import AvailableFormats
 from om_benchmarks.helpers.parse_tuple import parse_tuple
 from om_benchmarks.helpers.plotting import (
     create_and_save_memory_usage_chart,
@@ -19,6 +19,16 @@ from om_benchmarks.helpers.script_utils import get_era5_path_for_format, get_scr
 
 app = AsyncTyper()
 
+READ_FORMATS: list[AvailableFormats] = [
+    AvailableFormats.HDF5,
+    AvailableFormats.HDF5Hidefix,
+    AvailableFormats.Zarr,
+    AvailableFormats.ZarrTensorStore,
+    AvailableFormats.ZarrPythonViaZarrsCodecs,
+    AvailableFormats.NetCDF,
+    AvailableFormats.OM,
+]
+
 
 @app.command()
 async def main(
@@ -29,8 +39,6 @@ async def main(
     ),
     iterations: int = typer.Option(10, help="Number of times to repeat each benchmark for more reliable results."),
 ):
-    # FIXME: Improve format configuration
-    formats = DEFAULT_READ_FORMATS
     # FIXME: Find a way to effectively benchmark against various chunk sizes.
     _chunk_size = cast(tuple[int], parse_tuple(chunk_size))
     del chunk_size
@@ -40,11 +48,11 @@ async def main(
     del read_index
     print("Read index:", _read_index)
 
-    # Initialize results manager
+    # Gather results
     results_dir, plots_dir = get_script_dirs(__file__)
-
     read_results: list[BenchmarkRecord] = []
-    for format in formats:
+
+    for format in READ_FORMATS:
         file_path = get_era5_path_for_format(format, chunk_size=_chunk_size)
         if not os.path.exists(file_path):
             print(f"File not found: {file_path}. Generating it ...")
