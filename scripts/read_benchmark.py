@@ -10,8 +10,7 @@ from om_benchmarks.helpers.plotting import (
     create_and_save_memory_usage_chart,
     create_and_save_perf_chart,
 )
-from om_benchmarks.helpers.prints import print_bm_results
-from om_benchmarks.helpers.results import BenchmarkResultsManager
+from om_benchmarks.helpers.results import BenchmarkResultsDF
 from om_benchmarks.helpers.script_utils import get_script_dirs
 
 app = AsyncTyper()
@@ -41,18 +40,19 @@ async def main(
 
     # Initialize results manager
     results_dir, plots_dir = get_script_dirs(__file__)
-    results_manager = BenchmarkResultsManager(results_dir)
+    results_df = BenchmarkResultsDF(results_dir)
     if not plot_only:
         read_results = await bm_read_all_formats(_read_index, iterations, formats)
-        current_df = results_manager.save_and_display_results(read_results, type="read")
+        results_df.append(read_results)
+        results_df.save_results()
     else:
         # Load results from file
-        current_df = results_manager.load_last_results()
+        results_df.load_last_results()
 
-    print_bm_results(results_manager=results_manager, results_df=current_df)
+    results_df.print_summary()
     # Create visualizations
-    create_and_save_perf_chart(current_df, plots_dir)
-    create_and_save_memory_usage_chart(current_df, plots_dir)
+    create_and_save_perf_chart(results_df.df, plots_dir)
+    create_and_save_memory_usage_chart(results_df.df, plots_dir)
 
 
 if __name__ == "__main__":

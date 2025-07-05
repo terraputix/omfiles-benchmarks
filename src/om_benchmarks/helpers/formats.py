@@ -24,6 +24,25 @@ class AvailableFormats(Enum):
     OM = "om"
 
     @property
+    def file_extension(self) -> str:
+        if self == AvailableFormats.HDF5:
+            return ".h5"
+        elif self == AvailableFormats.HDF5Hidefix:
+            return ".h5"
+        elif self == AvailableFormats.Zarr:
+            return ".zarr"
+        elif self == AvailableFormats.ZarrTensorStore:
+            return ".zarr"
+        elif self == AvailableFormats.ZarrPythonViaZarrsCodecs:
+            return ".zarr"
+        elif self == AvailableFormats.NetCDF:
+            return ".nc"
+        elif self == AvailableFormats.OM:
+            return ".om"
+        else:
+            raise ValueError(f"Unknown format: {self.name}")
+
+    @property
     def reader_class(self) -> Type[BaseReader]:
         """Get the reader class for this format."""
         if self not in _reader_classes:

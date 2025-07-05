@@ -4,7 +4,7 @@ from typing import cast
 import typer
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
-from om_benchmarks.helpers.bm_reader import BMResultsDict, bm_read_format
+from om_benchmarks.helpers.bm_reader import bm_read_format
 from om_benchmarks.helpers.bm_writer import bm_write_format
 from om_benchmarks.helpers.constants import DEFAULT_READ_FORMATS
 from om_benchmarks.helpers.era5 import read_era5_data
@@ -13,9 +13,8 @@ from om_benchmarks.helpers.plotting import (
     create_and_save_memory_usage_chart,
     create_and_save_perf_chart,
 )
-from om_benchmarks.helpers.prints import print_bm_results
-from om_benchmarks.helpers.results import BenchmarkResultsManager
-from om_benchmarks.helpers.schemas import RunMetadata
+from om_benchmarks.helpers.results import BenchmarkResultsDF
+from om_benchmarks.helpers.schemas import BenchmarkRecord, RunMetadata
 from om_benchmarks.helpers.script_utils import get_era5_path_for_format, get_script_dirs
 
 app = AsyncTyper()
@@ -43,12 +42,10 @@ async def main(
 
     # Initialize results manager
     results_dir, plots_dir = get_script_dirs(__file__)
-    results_manager = BenchmarkResultsManager(results_dir)
 
-    read_results: BMResultsDict = {}
+    read_results: list[BenchmarkRecord] = []
     for format in formats:
-        reader_type = format.reader_class
-        file_path = get_era5_path_for_format(reader_type, chunk_size=_chunk_size)
+        file_path = get_era5_path_for_format(format, chunk_size=_chunk_size)
         if not os.path.exists(file_path):
             print(f"File not found: {file_path}. Generating it ...")
 
@@ -60,17 +57,26 @@ async def main(
                 chunk_shape=_chunk_size,
                 iterations=1,
             )
-            await bm_write_format(_chunk_size, metadata, format.writer_class, file_path.__str__(), data)
+            await bm_write_format(_chunk_size, metadata, format, file_path.__str__(), data)
 
-        result = await bm_read_format(_read_index, iterations, reader_type, file_path.__str__(), False)
-        read_results[format] = result
+        result = await bm_read_format(
+            _read_index,
+            iterations,
+            format,
+            file_path.__str__(),
+            False,
+        )
+        read_results.append(result)
 
-    current_df = results_manager.save_and_display_results(read_results, type="read")
+    results_df = BenchmarkResultsDF(results_dir)
+    results_df.append(read_results)
 
-    print_bm_results(results_manager=results_manager, results_df=current_df)
+    results_df.save_results()
+    results_df.print_summary()
+
     # Create visualizations
-    create_and_save_perf_chart(current_df, plots_dir)
-    create_and_save_memory_usage_chart(current_df, plots_dir)
+    create_and_save_perf_chart(results_df.df, plots_dir)
+    create_and_save_memory_usage_chart(results_df.df, plots_dir)
 
 
 if __name__ == "__main__":

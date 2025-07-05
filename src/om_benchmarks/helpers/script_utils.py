@@ -1,18 +1,17 @@
 from pathlib import Path
-from typing import Tuple, Type, Union
+from typing import Tuple
 
 from om_benchmarks.helpers.constants import FILES_DIR, PLOTS_DIR, RESULTS_DIR
-from om_benchmarks.helpers.io.readers import BaseReader
-from om_benchmarks.helpers.io.writers import BaseWriter
+from om_benchmarks.helpers.formats import AvailableFormats
 
 
-def get_era5_path_for_format(reader_writer: Type[Union[BaseWriter, BaseReader]], chunk_size: tuple[int]) -> Path:
+def get_era5_path_for_format(format: AvailableFormats, chunk_size: tuple[int]) -> Path:
     chunk_size_str = "_".join(map(str, chunk_size))
-    return Path(f"{FILES_DIR}/era5_{chunk_size_str}").with_suffix(f"{reader_writer.file_extension()}")
+    return Path(f"{FILES_DIR}/era5_{chunk_size_str}").with_suffix(f"{format.file_extension}")
 
 
-def get_file_path_for_format(reader_writer: Type[Union[BaseWriter, BaseReader]]) -> Path:
-    return Path(f"{FILES_DIR}/data").with_suffix(f"{reader_writer.file_extension()}")
+def get_file_path_for_format(format: AvailableFormats) -> Path:
+    return Path(f"{FILES_DIR}/data").with_suffix(f"{format.file_extension}")
 
 
 def create_directory_with_confirmation(

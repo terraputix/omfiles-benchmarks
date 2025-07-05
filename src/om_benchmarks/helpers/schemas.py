@@ -1,10 +1,30 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Literal, Optional, Tuple
 
 import polars as pl
 
 from om_benchmarks.helpers.formats import AvailableFormats
+
+BENCHMARK_SCHEMA = pl.Schema(
+    {
+        "run_id": pl.Utf8,
+        "timestamp": pl.Utf8,
+        "operation": pl.Utf8,
+        "format": pl.Utf8,
+        "array_shape": pl.Utf8,
+        "chunk_shape": pl.Utf8,
+        "iterations": pl.Int64,
+        "mean_time": pl.Float64,
+        "std_time": pl.Float64,
+        "min_time": pl.Float64,
+        "max_time": pl.Float64,
+        "cpu_mean_time": pl.Float64,
+        "cpu_std_time": pl.Float64,
+        "memory_usage_bytes": pl.Float64,
+        "file_size_bytes": pl.Int64,
+    }
+)
 
 
 @dataclass
@@ -25,7 +45,7 @@ class BenchmarkRecord:
 
     run_id: str
     timestamp: str
-    operation: str  # 'read' or 'write'
+    operation: Literal["read", "write"]
     format: str
     array_shape: str  # serialized tuple as string
     chunk_shape: str  # serialized tuple as string
@@ -41,32 +61,14 @@ class BenchmarkRecord:
 
     @classmethod
     def polars_df_schema(cls) -> pl.Schema:
-        return pl.Schema(
-            {
-                "run_id": pl.Utf8,
-                "timestamp": pl.Utf8,
-                "operation": pl.Utf8,
-                "format": pl.Utf8,
-                "array_shape": pl.Utf8,
-                "chunk_shape": pl.Utf8,
-                "iterations": pl.Int64,
-                "mean_time": pl.Float64,
-                "std_time": pl.Float64,
-                "min_time": pl.Float64,
-                "max_time": pl.Float64,
-                "cpu_mean_time": pl.Float64,
-                "cpu_std_time": pl.Float64,
-                "memory_usage_bytes": pl.Float64,
-                "file_size_bytes": pl.Int64,
-            }
-        )
+        return BENCHMARK_SCHEMA
 
     @classmethod
     def from_benchmark_stats(
         cls,
         stats: BenchmarkStats,
         format_name: AvailableFormats,
-        operation: str,
+        operation: Literal["read", "write"],
         run_metadata: "RunMetadata",
     ) -> "BenchmarkRecord":
         """Convert BenchmarkStats to BenchmarkRecord"""
