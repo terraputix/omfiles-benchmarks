@@ -63,7 +63,7 @@ class BenchmarkRecord:
     def from_benchmark_stats(
         cls,
         stats: BenchmarkStats,
-        format_name: AvailableFormats,
+        format: AvailableFormats,
         operation: Literal["read", "write"],
         run_metadata: "RunMetadata",
     ) -> "BenchmarkRecord":
@@ -72,7 +72,7 @@ class BenchmarkRecord:
             run_id=run_metadata.run_id,
             timestamp=run_metadata.timestamp,
             operation=operation,
-            format=format_name.name,
+            format=format.name,
             array_shape=run_metadata.array_shape_str,
             chunk_shape=run_metadata.chunk_shape_str,
             iterations=run_metadata.iterations,
