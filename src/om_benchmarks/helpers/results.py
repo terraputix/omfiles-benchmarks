@@ -1,15 +1,13 @@
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import polars as pl
 
 from om_benchmarks.helpers.constants import RESULTS_DIR
+from om_benchmarks.helpers.schemas import BENCHMARK_SCHEMA, BenchmarkRecord
 
-from .schemas import BenchmarkRecord, BenchmarkStats, RunMetadata
 
-
-class BenchmarkResultsManager:
-    """Type-safe benchmark results manager"""
+class BenchmarkResultsDF:
+    schema = BENCHMARK_SCHEMA
 
     def __init__(self, results_dir: str | Path = RESULTS_DIR):
         if not isinstance(results_dir, Path):
@@ -19,43 +17,33 @@ class BenchmarkResultsManager:
         self.csv_path = self.results_dir / "benchmark_results.csv"
         self.last_run_path = self.results_dir / "benchmark_results_last.csv"
 
-    def save_and_display_results(
-        self, results: Dict[str, Tuple[BenchmarkStats, RunMetadata]], type: str
-    ) -> pl.DataFrame:
+        self.df = pl.DataFrame(schema=self.schema)
+
+    def append(self, records: list[BenchmarkRecord]) -> None:
+        new_df = pl.concat([self.df, pl.DataFrame(records, schema=self.schema)])
+        self.df = new_df
+
+    def save_results(self) -> None:
         """Save benchmark results to CSV and return DataFrame for display"""
-
-        records: List[BenchmarkRecord] = []
-
-        # Process results
-        for format_name, (stats, metadata) in results.items():
-            record = BenchmarkRecord.from_benchmark_stats(stats, format_name, type, metadata)
-            records.append(record)
-
-        # Convert to DataFrame
-        df = pl.DataFrame([record.to_dict() for record in records], schema=BenchmarkRecord.polars_df_schema())
-        df.write_csv(self.last_run_path)
+        # Save to last run CSV
+        self.df.write_csv(self.last_run_path)
         print(f"Latest results saved to {self.last_run_path}")
 
-        # Save to CSV
-        self._append_to_csv(df)
+        # Save to all runs CSV
+        with open(self.csv_path, mode="a") as f:
+            self.df.write_csv(f, include_header=False)
 
-        return df
+    def load_last_results(self):
+        """Load last benchmark results"""
+        if not self.csv_path.exists():
+            raise FileNotFoundError(f"File {self.csv_path} does not exist")
+        self.df = pl.read_csv(self.last_run_path)
 
-    def _append_to_csv(self, df: pl.DataFrame) -> None:
-        """Append DataFrame to CSV file"""
-        if self.csv_path.exists():
-            existing_df = pl.read_csv(self.csv_path)
-            combined_df = pl.concat([existing_df, df])
-        else:
-            combined_df = df
+    def print_summary(self) -> None:
+        """Print benchmark summary to console"""
 
-        combined_df.write_csv(self.csv_path)
-        print(f"Results saved to {self.csv_path}")
-
-    def get_current_results_summary(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Get a nicely formatted summary of current results"""
-        return (
-            df.with_columns(
+        summary_df = (
+            self.df.with_columns(
                 [
                     pl.col("mean_time").round(6).alias("mean_s"),
                     pl.col("std_time").round(6).alias("std_s"),
@@ -70,14 +58,8 @@ class BenchmarkResultsManager:
             .sort(["operation", "mean_s"])
         )
 
-    def load_last_results(self) -> pl.DataFrame:
-        """Load last benchmark results"""
-        if not self.csv_path.exists():
-            return pl.DataFrame()
-        return pl.read_csv(self.last_run_path)
-
-    def load_historical_data(self) -> pl.DataFrame:
-        """Load all historical benchmark data"""
-        if not self.csv_path.exists():
-            return pl.DataFrame()
-        return pl.read_csv(self.csv_path)
+        with pl.Config(tbl_cols=-1, tbl_rows=-1):  # display all columns and rows
+            print("\n" + "=" * 80)
+            print("CURRENT BENCHMARK RESULTS")
+            print("=" * 80)
+            print(summary_df)

@@ -3,28 +3,15 @@ from pathlib import Path
 import altair as alt
 import polars as pl
 
-from om_benchmarks.helpers.constants import PLOTS_DIR
-
 # from PIL import Image
 
 alt.data_transformers.enable("json")
 alt.themes.enable("opaque")
 
 
-def create_benchmark_charts(df: pl.DataFrame, save_dir: str | Path = PLOTS_DIR) -> None:
-    """Create benchmark visualization charts using Altair with proper column names"""
+def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str = "performance_chart.png"):
+    output_path = save_dir / file_name
 
-    if not isinstance(save_dir, Path):
-        save_dir = Path(save_dir)
-
-    create_and_save_perf_chart(df, save_dir)
-    create_and_save_file_size_chart(df, save_dir)
-    create_and_save_memory_usage_chart(df, save_dir)
-
-    print(f"Charts saved to {save_dir}")
-
-
-def create_and_save_perf_chart(df, save_dir):
     perf_chart = (
         alt.Chart(df)
         .mark_bar(cornerRadius=2)
@@ -60,11 +47,12 @@ def create_and_save_perf_chart(df, save_dir):
         .configure_axis(grid=True, gridOpacity=0.2)
     )
 
-    perf_chart.save(str(save_dir / "performance_comparison.png"), ppi=400)
-    # Image.open(str(save_path / "performance_comparison.png")).show()
+    perf_chart.save(output_path, ppi=400)
+    # Image.open(output_path).show()
 
 
-def create_and_save_file_size_chart(df, save_dir):
+def create_and_save_file_size_chart(df: pl.DataFrame, save_dir: Path, file_name: str = "file_size_comparison.png"):
+    output_path = save_dir / file_name
     write_df = df.filter(pl.col("operation") == "write").filter(pl.col("file_size_bytes") > 0)
 
     file_size_chart = (
@@ -79,11 +67,12 @@ def create_and_save_file_size_chart(df, save_dir):
         .properties(width=400, height=200, title="File Size by Format")
     )
 
-    file_size_chart.save(str(save_dir / "file_size_comparison.png"), ppi=400)
-    # Image.open(str(save_path / "file_size_comparison.png")).show()
+    file_size_chart.save(output_path, ppi=400)
+    # Image.open(output_path).show()
 
 
-def create_and_save_memory_usage_chart(df, save_dir):
+def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_name: str = "memory_usage.png"):
+    output_path = save_dir / file_name
     memory_chart = (
         alt.Chart(df)
         .mark_bar(cornerRadius=2)
@@ -102,5 +91,5 @@ def create_and_save_memory_usage_chart(df, save_dir):
         .properties(width=400, height=200, title="Memory Usage by Format and Operation")
     )
 
-    memory_chart.save(str(save_dir / "memory_usage.png"), ppi=400)
-    # Image.open(str(save_path / "memory_usage.png")).show()
+    memory_chart.save(output_path, ppi=400)
+    # Image.open(output_path).show()

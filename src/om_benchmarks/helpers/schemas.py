@@ -1,8 +1,30 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from typing import Literal, Optional, Tuple
 
 import polars as pl
+
+from om_benchmarks.helpers.formats import AvailableFormats
+
+BENCHMARK_SCHEMA = pl.Schema(
+    {
+        "run_id": pl.Utf8,
+        "timestamp": pl.Utf8,
+        "operation": pl.Utf8,
+        "format": pl.Utf8,
+        "array_shape": pl.Utf8,
+        "chunk_shape": pl.Utf8,
+        "iterations": pl.Int64,
+        "mean_time": pl.Float64,
+        "std_time": pl.Float64,
+        "min_time": pl.Float64,
+        "max_time": pl.Float64,
+        "cpu_mean_time": pl.Float64,
+        "cpu_std_time": pl.Float64,
+        "memory_usage_bytes": pl.Float64,
+        "file_size_bytes": pl.Int64,
+    }
+)
 
 
 @dataclass
@@ -23,7 +45,7 @@ class BenchmarkRecord:
 
     run_id: str
     timestamp: str
-    operation: str  # 'read' or 'write'
+    operation: Literal["read", "write"]
     format: str
     array_shape: str  # serialized tuple as string
     chunk_shape: str  # serialized tuple as string
@@ -38,37 +60,19 @@ class BenchmarkRecord:
     file_size_bytes: float
 
     @classmethod
-    def polars_df_schema(cls) -> pl.Schema:
-        return pl.Schema(
-            {
-                "run_id": pl.Utf8,
-                "timestamp": pl.Utf8,
-                "operation": pl.Utf8,
-                "format": pl.Utf8,
-                "array_shape": pl.Utf8,
-                "chunk_shape": pl.Utf8,
-                "iterations": pl.Int64,
-                "mean_time": pl.Float64,
-                "std_time": pl.Float64,
-                "min_time": pl.Float64,
-                "max_time": pl.Float64,
-                "cpu_mean_time": pl.Float64,
-                "cpu_std_time": pl.Float64,
-                "memory_usage_bytes": pl.Float64,
-                "file_size_bytes": pl.Int64,
-            }
-        )
-
-    @classmethod
     def from_benchmark_stats(
-        cls, stats: BenchmarkStats, format_name: str, operation: str, run_metadata: "RunMetadata"
+        cls,
+        stats: BenchmarkStats,
+        format: AvailableFormats,
+        operation: Literal["read", "write"],
+        run_metadata: "RunMetadata",
     ) -> "BenchmarkRecord":
         """Convert BenchmarkStats to BenchmarkRecord"""
         return cls(
             run_id=run_metadata.run_id,
             timestamp=run_metadata.timestamp,
             operation=operation,
-            format=format_name,
+            format=format.name,
             array_shape=run_metadata.array_shape_str,
             chunk_shape=run_metadata.chunk_shape_str,
             iterations=run_metadata.iterations,
@@ -81,26 +85,6 @@ class BenchmarkRecord:
             memory_usage_bytes=stats.memory_usage,
             file_size_bytes=stats.file_size,
         )
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for DataFrame creation"""
-        return {
-            "run_id": self.run_id,
-            "timestamp": self.timestamp,
-            "operation": self.operation,
-            "format": self.format,
-            "array_shape": self.array_shape,
-            "chunk_shape": self.chunk_shape,
-            "iterations": self.iterations,
-            "mean_time": self.mean_time,
-            "std_time": self.std_time,
-            "min_time": self.min_time,
-            "max_time": self.max_time,
-            "cpu_mean_time": self.cpu_mean_time,
-            "cpu_std_time": self.cpu_std_time,
-            "memory_usage_bytes": self.memory_usage_bytes,
-            "file_size_bytes": self.file_size_bytes,
-        }
 
 
 @dataclass

@@ -1,3 +1,5 @@
+"""Implements a unified interface for reading data from various formats."""
+
 from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 from typing import Literal, Optional, cast

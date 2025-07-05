@@ -1,40 +1,45 @@
-from typing import Tuple
+from typing import List
 
 from zarr.core.buffer import NDArrayLike
 
-from om_benchmarks.helpers.schemas import BenchmarkStats, RunMetadata
+from om_benchmarks.helpers.formats import AvailableFormats
+from om_benchmarks.helpers.schemas import BenchmarkRecord, RunMetadata
+from om_benchmarks.helpers.script_utils import get_file_path_for_format
+from om_benchmarks.helpers.stats import measure_execution, run_multiple_benchmarks
 
-from .formats import FormatFactory
-from .stats import (
-    measure_execution,
-    run_multiple_benchmarks,
-)
 
-# Define separate dictionaries for read and write formats and filenames
-write_formats_and_filenames = {
-    "h5": "benchmark_files/data.h5",
-    "zarr": "benchmark_files/data.zarr",
-    "nc": "benchmark_files/data.nc",
-    "om": "benchmark_files/data.om",
-}
+async def bm_write_format(
+    chunk_size: tuple,
+    metadata: RunMetadata,
+    format: AvailableFormats,
+    file: str,
+    data: NDArrayLike,
+) -> BenchmarkRecord:
+    print(f"Writing file {file}...")
+
+    writer = format.writer_class(file)
+
+    @measure_execution
+    def write():
+        writer.write(data, chunk_size)
+
+    write_stats = await run_multiple_benchmarks(write, metadata.iterations)
+    write_stats.file_size = writer.get_file_size()
+    benchmark_record = BenchmarkRecord.from_benchmark_stats(write_stats, format, "write", metadata)
+    return benchmark_record
 
 
 async def bm_write_all_formats(
-    chunk_size: tuple, metadata: RunMetadata, data: NDArrayLike
-) -> dict[str, Tuple[BenchmarkStats, RunMetadata]]:
-    write_results: dict[str, Tuple[BenchmarkStats, RunMetadata]] = {}
-    for format_name, file in write_formats_and_filenames.items():
-        writer = FormatFactory.create_writer(format_name, file)
-
-        @measure_execution
-        def write():
-            writer.write(data, chunk_size)
-
-        try:
-            write_stats = await run_multiple_benchmarks(write, metadata.iterations)
-            write_stats.file_size = writer.get_file_size()
-            write_results[format_name] = (write_stats, metadata)
-        except Exception as e:
-            print(f"Error with {format_name}: {e}")
+    chunk_size: tuple,
+    metadata: RunMetadata,
+    data: NDArrayLike,
+    formats: List[AvailableFormats],
+) -> list[BenchmarkRecord]:
+    write_results: list[BenchmarkRecord] = []
+    for format in formats:
+        print(f"Benchmarking {format.name}...")
+        file = get_file_path_for_format(format).__str__()
+        result = await bm_write_format(chunk_size, metadata, format, file, data)
+        write_results.append(result)
 
     return write_results

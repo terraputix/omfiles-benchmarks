@@ -1,3 +1,5 @@
+"""Implements a unified interface for writing data to various formats."""
+
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
