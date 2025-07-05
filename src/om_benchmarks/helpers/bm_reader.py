@@ -1,6 +1,7 @@
 from typing import List
 
 from om_benchmarks.helpers.formats import AvailableFormats
+from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig
 from om_benchmarks.helpers.schemas import BenchmarkRecord, RunMetadata
 from om_benchmarks.helpers.script_utils import get_file_path_for_format
 from om_benchmarks.helpers.stats import measure_execution, run_multiple_benchmarks
@@ -10,6 +11,7 @@ async def bm_read_format(
     read_index,
     iterations,
     format: AvailableFormats,
+    format_config: FormatWriterConfig,
     file: str,
     print_read_data: bool = False,
 ) -> BenchmarkRecord:
@@ -26,7 +28,7 @@ async def bm_read_format(
             sample_data = await reader.read(read_index)  # Get sample data for verification
             print(sample_data)
         read_stats = await run_multiple_benchmarks(read, iterations)
-        metadata = RunMetadata(array_shape=reader.shape, chunk_shape=reader.chunk_shape, iterations=iterations)
+        metadata = RunMetadata(array_shape=reader.shape, format_config=format_config, iterations=iterations)
         benchmark_record = BenchmarkRecord.from_benchmark_stats(read_stats, format, "read", metadata)
         return benchmark_record
 

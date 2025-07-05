@@ -1,27 +1,28 @@
-from typing import List
+from typing import Dict
 
 from zarr.core.buffer import NDArrayLike
 
 from om_benchmarks.helpers.formats import AvailableFormats
+from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig
 from om_benchmarks.helpers.schemas import BenchmarkRecord, RunMetadata
 from om_benchmarks.helpers.script_utils import get_file_path_for_format
 from om_benchmarks.helpers.stats import measure_execution, run_multiple_benchmarks
 
 
 async def bm_write_format(
-    chunk_size: tuple,
     metadata: RunMetadata,
     format: AvailableFormats,
+    config: FormatWriterConfig,
     file: str,
     data: NDArrayLike,
 ) -> BenchmarkRecord:
     print(f"Writing file {file}...")
 
-    writer = format.writer_class(file)
+    writer = format.writer_class(file, config)
 
     @measure_execution
     def write():
-        writer.write(data, chunk_size)
+        writer.write(data)
 
     write_stats = await run_multiple_benchmarks(write, metadata.iterations)
     write_stats.file_size = writer.get_file_size()
@@ -30,16 +31,15 @@ async def bm_write_format(
 
 
 async def bm_write_all_formats(
-    chunk_size: tuple,
     metadata: RunMetadata,
     data: NDArrayLike,
-    formats: List[AvailableFormats],
+    formats: Dict[AvailableFormats, FormatWriterConfig],
 ) -> list[BenchmarkRecord]:
     write_results: list[BenchmarkRecord] = []
-    for format in formats:
+    for format, config in formats.items():
         print(f"Benchmarking {format.name}...")
         file = get_file_path_for_format(format).__str__()
-        result = await bm_write_format(chunk_size, metadata, format, file, data)
+        result = await bm_write_format(metadata, format, config, file, data)
         write_results.append(result)
 
     return write_results

@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Optional, Tuple
+from typing import Literal, Tuple
 
 import polars as pl
 
 from om_benchmarks.helpers.formats import AvailableFormats
+from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig
 
 BENCHMARK_SCHEMA = pl.Schema(
     {
@@ -92,12 +93,13 @@ class RunMetadata:
     """Metadata for a benchmark run"""
 
     array_shape: Tuple[int, ...]
-    chunk_shape: Optional[Tuple[int, ...]]
+    format_config: FormatWriterConfig
     iterations: int
 
     def __post_init__(self):
         """Generate derived fields after initialization"""
         self.timestamp = datetime.now().isoformat()
         self.array_shape_str = str(self.array_shape)
-        self.chunk_shape_str = str(self.chunk_shape)
+        self.chunk_shape_str = str(self.format_config.chunk_size)
+        self.compression = self.format_config.compression_identifier
         self.run_id = f"{self.timestamp}_{self.array_shape_str}"

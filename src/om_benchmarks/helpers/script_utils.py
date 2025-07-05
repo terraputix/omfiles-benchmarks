@@ -3,6 +3,15 @@ from typing import Tuple
 
 from om_benchmarks.helpers.constants import FILES_DIR, PLOTS_DIR, RESULTS_DIR
 from om_benchmarks.helpers.formats import AvailableFormats
+from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig
+
+
+def get_era5_path_for_config(format: AvailableFormats, config: FormatWriterConfig) -> Path:
+    chunk_size_str = "_".join(map(str, config.chunk_size))
+    compression_str = config.compression_identifier
+    file_name = f"era5_chunks_{chunk_size_str}_compr_{compression_str}"
+
+    return Path(f"{FILES_DIR}/{file_name}").with_suffix(f"{format.file_extension}")
 
 
 def get_era5_path_for_format(format: AvailableFormats, chunk_size: tuple[int]) -> Path:
