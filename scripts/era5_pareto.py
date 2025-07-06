@@ -1,4 +1,5 @@
 import os
+from typing import List, Tuple
 
 import hdf5plugin
 import numcodecs
@@ -32,49 +33,68 @@ chunk_sizes = {
     "large": (20, 20, 1440),
 }
 
-READ_FORMATS: dict[AvailableFormats, FormatWriterConfig] = {
-    AvailableFormats.HDF5: HDF5Config(chunk_size=chunk_sizes["small"]),
-    AvailableFormats.HDF5: HDF5Config(
-        chunk_size=chunk_sizes["small"],
-        compression=hdf5plugin.Blosc(cname="zstd", clevel=9, shuffle=hdf5plugin.Blosc.SHUFFLE),
+READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
+    (AvailableFormats.HDF5, HDF5Config(chunk_size=chunk_sizes["small"])),
+    (
+        AvailableFormats.HDF5,
+        HDF5Config(
+            chunk_size=chunk_sizes["small"],
+            compression=hdf5plugin.Blosc(cname="zstd", clevel=9, shuffle=hdf5plugin.Blosc.SHUFFLE),
+        ),
     ),
-    AvailableFormats.HDF5Hidefix: HDF5Config(chunk_size=chunk_sizes["small"]),
-    AvailableFormats.Zarr: ZarrConfig(
-        chunk_size=chunk_sizes["small"],
-        compressor=numcodecs.Blosc(cname="zstd", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE),
+    (AvailableFormats.HDF5Hidefix, HDF5Config(chunk_size=chunk_sizes["small"])),
+    (
+        AvailableFormats.Zarr,
+        ZarrConfig(
+            chunk_size=chunk_sizes["small"],
+            compressor=numcodecs.Blosc(cname="zstd", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE),
+        ),
     ),
-    AvailableFormats.Zarr: ZarrConfig(
-        chunk_size=chunk_sizes["small"],
-        compressor=numcodecs.Blosc(),
+    (
+        AvailableFormats.Zarr,
+        ZarrConfig(
+            chunk_size=chunk_sizes["small"],
+            compressor=numcodecs.Blosc(),
+        ),
     ),
-    # AvailableFormats.ZarrTensorStore: ZarrConfig(
-    #     chunk_size=chunk_sizes["small"],
-    #     compressor=numcodecs.Blosc(),
-    # ),
-    AvailableFormats.ZarrPythonViaZarrsCodecs: ZarrConfig(
-        chunk_size=chunk_sizes["small"],
-        compressor=numcodecs.Blosc(),
+    (
+        AvailableFormats.ZarrTensorStore,
+        ZarrConfig(
+            chunk_size=chunk_sizes["small"],
+            compressor=numcodecs.Blosc(),
+        ),
     ),
-    AvailableFormats.NetCDF: NetCDFConfig(chunk_size=chunk_sizes["small"], compression="zlib", compression_level=3),
-    AvailableFormats.OM: OMConfig(
-        chunk_size=chunk_sizes["small"],
-        compression="pfor_delta_2d",
-        scale_factor=100,
-        add_offset=0,
+    (
+        AvailableFormats.ZarrPythonViaZarrsCodecs,
+        ZarrConfig(
+            chunk_size=chunk_sizes["small"],
+            compressor=numcodecs.Blosc(),
+        ),
     ),
-}
+    (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression="zlib", compression_level=3)),
+    (
+        AvailableFormats.OM,
+        OMConfig(
+            chunk_size=chunk_sizes["small"],
+            compression="pfor_delta_2d",
+            scale_factor=100,
+            add_offset=0,
+        ),
+    ),
+]
 
 
 @app.command()
 async def main(
-    iterations: int = typer.Option(10, help="Number of times to repeat each benchmark for more reliable results."),
+    read_iterations: int = typer.Option(5, help="Number of times to repeat each benchmark for more reliable results."),
+    write_iterations: int = typer.Option(1, help="Number of times to repeat each benchmark for more reliable results."),
 ):
     # Gather results
     results_dir, plots_dir = get_script_dirs(__file__)
     read_results: list[BenchmarkRecord] = []
     write_results: list[BenchmarkRecord] = []
 
-    for format, config in READ_FORMATS.items():
+    for format, config in READ_FORMATS:
         file_path = get_era5_path_for_config(format, config=config)
         if not os.path.exists(file_path):
             print(f"File not found: {file_path}. Generating it ...")
@@ -85,7 +105,7 @@ async def main(
             metadata = RunMetadata(
                 array_shape=data.shape,
                 format_config=config,
-                iterations=1,
+                iterations=write_iterations,
             )
             write_result = await bm_write_format(metadata, format, config, file_path.__str__(), data)
             write_results.append(write_result)
@@ -93,7 +113,7 @@ async def main(
         for read_index in read_indices:
             result = await bm_read_format(
                 read_index,
-                iterations,
+                read_iterations,
                 format,
                 config,
                 file_path.__str__(),

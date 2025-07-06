@@ -163,7 +163,7 @@ class TensorStoreZarrReader(BaseReader):
     async def create(cls, filename: str):
         self = await super().create(filename)
         # Open the Zarr file using TensorStore
-        self.ts_reader = ts.open(  # type: ignore
+        self.ts_reader = await ts.open(  # type: ignore
             {
                 "driver": "zarr",
                 "kvstore": {
@@ -173,7 +173,7 @@ class TensorStoreZarrReader(BaseReader):
                 "path": "arr_0",
                 "open": True,
             }
-        ).result()
+        )
 
         return self
 
