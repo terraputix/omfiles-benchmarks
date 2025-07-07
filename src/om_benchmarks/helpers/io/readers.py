@@ -1,5 +1,6 @@
 """Implements a unified interface for reading data from various formats."""
 
+import os
 from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 from typing import Literal, Optional, cast
@@ -40,6 +41,25 @@ class BaseReader(ABC):
     @abstractproperty
     def chunk_shape(self) -> Optional[tuple[int, ...]]:
         raise NotImplementedError("The chunk_shape property must be implemented by subclasses")
+
+    def get_file_size(self) -> int:
+        """Get the size of a file in bytes."""
+        path = Path(self.filename)
+
+        # For directories (like Zarr stores), calculate total size recursively
+        if path.is_dir():
+            total_size = 0
+            for dirpath, _, filenames in os.walk(path):
+                for f in filenames:
+                    fp = Path(dirpath) / f
+                    if fp.is_file():
+                        total_size += fp.stat().st_size
+            return total_size
+        # For regular files
+        elif path.is_file():
+            return path.stat().st_size
+        else:
+            return 0
 
 
 class HDF5Reader(BaseReader):
@@ -84,7 +104,8 @@ class HDF5HidefixReader(BaseReader):
         return self
 
     async def read(self, index: BasicSelection) -> np.ndarray:
-        return self.h5_reader["dataset"][index].values
+        # hidefix arrays need to be squeezed explicitly
+        return self.h5_reader["dataset"].squeeze().values
 
     def close(self) -> None:
         self.h5_reader.close()
@@ -154,6 +175,10 @@ class ZarrsCodecsZarrReader(ZarrReader):
         )
         self = await super().create(filename)
         return self
+
+    def close(self) -> None:
+        zarr.config.reset()  # reset the config to its original state
+        super().close()
 
 
 class TensorStoreZarrReader(BaseReader):

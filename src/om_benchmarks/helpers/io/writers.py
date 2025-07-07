@@ -69,7 +69,7 @@ class ZarrWriter(BaseWriter[ZarrConfig]):
             shape=data.shape,
             chunks=self.config.chunk_size,
             dtype=self.config.dtype,
-            compressors=[self.config.compressor],
+            compressors=self.config.compressor,
             filters=self.config.filter,
             serializer=self.config.serializer,
         )
@@ -102,6 +102,6 @@ class OMWriter(BaseWriter[OMConfig]):
             chunks=self.config.chunk_size,
             scale_factor=self.config.scale_factor,
             add_offset=self.config.add_offset,
-            compression="pfor_delta_2d",
+            compression=self.config.compression,
         )
         writer.close(variable)

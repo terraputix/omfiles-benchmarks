@@ -41,8 +41,16 @@ async def bm_read_format(
             memory_measurement=memory_read,
             time_iterations=iterations,
             memory_iterations=1,
+            clear_cache=clear_cache,
         )
-        metadata = RunMetadata(array_shape=reader.shape, format_config=format_config, iterations=iterations)
+        read_stats.file_size = reader.get_file_size()
+
+        metadata = RunMetadata(
+            array_shape=reader.shape,
+            read_index=read_index,
+            format_config=format_config,
+            iterations=iterations,
+        )
         benchmark_record = BenchmarkRecord.from_benchmark_stats(read_stats, format, "read", metadata)
         return benchmark_record
 

@@ -165,8 +165,6 @@ async def run_multiple_benchmarks(
         result = await memory_measurement()
         memory_usages.append(result.memory_total_allocations)
 
-    print(f"times: {times}")
-
     return BenchmarkStats(
         mean=statistics.mean(times),
         std=statistics.stdev(times) if len(times) > 1 else 0.0,

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Tuple
+from typing import Literal, Optional, Tuple
 
 import polars as pl
 
@@ -14,7 +14,9 @@ BENCHMARK_SCHEMA = pl.Schema(
         "operation": pl.Utf8,
         "format": pl.Utf8,
         "array_shape": pl.Utf8,
+        "compression": pl.Utf8,
         "chunk_shape": pl.Utf8,
+        "read_index": pl.Utf8,
         "iterations": pl.Int64,
         "mean_time": pl.Float64,
         "std_time": pl.Float64,
@@ -49,7 +51,9 @@ class BenchmarkRecord:
     operation: Literal["read", "write"]
     format: str
     array_shape: str  # serialized tuple as string
+    compression: str
     chunk_shape: str  # serialized tuple as string
+    read_index: str  # serialized tuple as string
     iterations: int
     mean_time: float
     std_time: float
@@ -75,7 +79,9 @@ class BenchmarkRecord:
             operation=operation,
             format=format.name,
             array_shape=run_metadata.array_shape_str,
+            compression=run_metadata.compression_identifier,
             chunk_shape=run_metadata.chunk_shape_str,
+            read_index=run_metadata.read_index_str,
             iterations=run_metadata.iterations,
             mean_time=stats.mean,
             std_time=stats.std,
@@ -93,6 +99,7 @@ class RunMetadata:
     """Metadata for a benchmark run"""
 
     array_shape: Tuple[int, ...]
+    read_index: Optional[Tuple[int, ...]]
     format_config: FormatWriterConfig
     iterations: int
 
@@ -100,6 +107,7 @@ class RunMetadata:
         """Generate derived fields after initialization"""
         self.timestamp = datetime.now().isoformat()
         self.array_shape_str = str(self.array_shape)
+        self.compression_identifier = self.format_config.compression_pretty_name
         self.chunk_shape_str = str(self.format_config.chunk_size)
-        self.compression = self.format_config.compression_identifier
+        self.read_index_str = str(self.read_index) if self.read_index is not None else "None"
         self.run_id = f"{self.timestamp}_{self.array_shape_str}"

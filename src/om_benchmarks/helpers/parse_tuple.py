@@ -1,3 +1,5 @@
+import re
+
 from omfiles.types import BasicSelection
 
 
@@ -22,3 +24,32 @@ def parse_tuple(string: str) -> BasicSelection:
         elif item:  # Skip empty strings from trailing commas
             result.append(int(item))
     return tuple(result)
+
+
+def pretty_read_index(read_index_str: str) -> str:
+    """
+    Converts a string like '(slice(100,104), slice(200,204,2), Ellipsis)'
+    to '[100:104, 200:204:2, ...]'
+    Handles step=None as [start:stop] (no step shown).
+    """
+    if not read_index_str:
+        return ""
+    s = read_index_str.strip()
+    if s.startswith("(") and s.endswith(")"):
+        s = s[1:-1]
+    s = s.replace("Ellipsis", "...")
+
+    # Function to convert slice(start, stop, step) to start:stop:step
+    def slice_repl(match):
+        start, stop, step = match.groups()
+        # Remove 'None' step or if step is missing
+        if step is None or step == "None":
+            return f"{start}:{stop}"
+        else:
+            return f"{start}:{stop}:{step}"
+
+    # Replace slice(start, stop, step) or slice(start, stop)
+    s = re.sub(r"slice\(\s*([^,]+)\s*,\s*([^,]+)\s*(?:,\s*([^)]+)\s*)?\)", slice_repl, s)
+    # Remove any extra whitespace
+    s = ", ".join(part.strip() for part in s.split(","))
+    return f"[{s}]"
