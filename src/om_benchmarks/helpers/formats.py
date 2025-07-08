@@ -15,13 +15,13 @@ from om_benchmarks.helpers.io.writers import BaseWriter, HDF5Writer, NetCDFWrite
 
 
 class AvailableFormats(Enum):
-    HDF5 = "h5"
-    HDF5Hidefix = "h5hidefix"
-    Zarr = "zarr"
-    ZarrTensorStore = "zarrTensorStore"
-    ZarrPythonViaZarrsCodecs = "zarrPythonViaZarrsCodecs"
-    NetCDF = "nc"
-    OM = "om"
+    HDF5 = "HDF5"
+    HDF5Hidefix = "HDF5Hidefix"
+    Zarr = "Zarr"
+    ZarrTensorStore = "ZarrTensorStore"
+    ZarrPythonViaZarrsCodecs = "ZarrPythonViaZarrsCodecs"
+    NetCDF = "NetCDF"
+    OM = "OM"
 
     @property
     def file_extension(self) -> str:

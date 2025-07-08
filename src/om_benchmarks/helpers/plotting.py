@@ -1,8 +1,9 @@
+from functools import reduce
 from pathlib import Path
-from typing import cast
+from typing import Dict, List, Optional, Tuple, cast
 
 import matplotlib.axes
-import matplotlib.colors as mcolors
+import matplotlib.figure
 import matplotlib.lines
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,6 +13,7 @@ import seaborn as sns
 from matplotlib import rcParams
 from matplotlib.ticker import FuncFormatter
 
+from om_benchmarks.helpers.formats import AvailableFormats
 from om_benchmarks.helpers.parse_tuple import pretty_read_index
 
 # plotting backend does not need to be interactive
@@ -26,12 +28,12 @@ rcParams.update(
         "font.family": "serif",
         "font.serif": ["Computer Modern Roman"],
         "font.size": 12,
-        "axes.labelsize": 14,
-        "axes.titlesize": 16,
-        "xtick.labelsize": 11,
-        "ytick.labelsize": 11,
-        "legend.fontsize": 12,
-        "figure.titlesize": 18,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "legend.fontsize": 11,
+        "axes.labelsize": 9,
+        "axes.titlesize": 11,
+        "figure.titlesize": 16,
         "axes.grid": True,
         "grid.alpha": 0.3,
         "axes.spines.top": False,
@@ -45,7 +47,7 @@ rcParams.update(
 )
 
 
-def format_bytes(x, pos):
+def format_bytes(x: float, pos: int) -> str:
     """Format bytes into human readable format"""
     for unit in ["B", "KB", "MB", "GB"]:
         if x < 1024.0:
@@ -54,7 +56,7 @@ def format_bytes(x, pos):
     return f"{x:.1f}\\,TB"
 
 
-def format_time(x, pos):
+def format_time(x: float, pos: int) -> str:
     """Format time into human readable format"""
     if x < 1:
         return f"{x * 1000:.1f}\\,ms"
@@ -64,49 +66,43 @@ def format_time(x, pos):
         return f"{x / 60:.1f}\\,min"
 
 
-def _get_label(format_name, compression):
-    if compression is None or compression == "none" or compression == "":
-        return format_name
-    return f"{format_name} \n({compression})"
+def normalize_compression(comp: Optional[str]) -> str:
+    if comp is None or comp.lower() == "none" or comp == "":
+        return "None"
+    return comp
 
 
-def _get_color_map(df):
-    """
-    Returns a dict mapping label to color, using base color for format and shade for compression.
-    Uses seaborn color palettes for academic consistency and colorblind-friendliness.
-    """
-    has_compression = "compression" in df.columns
-
-    # Use seaborn colorblind palette for base formats
-    unique_formats = df["format"].unique().to_list()
-    base_colors = sns.color_palette("colorblind", n_colors=len(unique_formats))
-    format_base_color_map = dict(zip(unique_formats, base_colors))
-
-    if not has_compression:
-        return {fmt: format_base_color_map[fmt] for fmt in unique_formats}, False
-
-    # Get all unique (format, compression) pairs
-    combos = df.select([pl.col("format"), pl.col("compression")]).unique().sort(["format", "compression"]).to_numpy()
-
-    color_map = {}
-    for format_name, compression in combos:
-        label = _get_label(format_name, compression)
-        base_color = format_base_color_map[format_name]
-        if compression is None or compression == "none" or compression == "":
-            color_map[label] = base_color
-        else:
-            # Use a lighter version of the base color for compressed variants
-            # (You could also use a darker version if you prefer)
-            rgb = mcolors.to_rgb(base_color)
-            lighter_rgb = mcolors.to_rgb(mcolors.to_hex(rgb))
-            # Blend with white for lighter shade
-            blend_factor = 0.5  # 0=base, 1=white
-            lighter_rgb = tuple((1 - blend_factor) * c + blend_factor * 1.0 for c in rgb)
-            color_map[label] = lighter_rgb
-    return color_map, True
+def _get_label(format: AvailableFormats, compression: Optional[str]) -> str:
+    return f"{format.name} \n({normalize_compression(compression)})"
 
 
-def get_subplot_grid(df, operations):
+def get_marker_for_format(fmt: AvailableFormats) -> str:
+    """Get marker symbol for a format."""
+    marker_map = {
+        AvailableFormats.HDF5: "o",
+        AvailableFormats.HDF5Hidefix: "s",
+        AvailableFormats.Zarr: "D",
+        AvailableFormats.ZarrTensorStore: "^",
+        AvailableFormats.ZarrPythonViaZarrsCodecs: "v",
+        AvailableFormats.NetCDF: "P",
+        AvailableFormats.OM: "*",
+    }
+    return marker_map[fmt]
+
+
+def create_compression_color_map(compressions: list[str]) -> Dict[str, Tuple[float, float, float]]:
+    """Create a color map for compression types using colorblind-friendly palette."""
+    # Normalize compression names
+    normalized_compressions = [normalize_compression(comp) for comp in compressions]
+    unique_compressions = list(set(normalized_compressions))
+    base_colors = sns.color_palette("colorblind", n_colors=len(unique_compressions))
+    return dict(zip(unique_compressions, base_colors))
+
+
+def get_subplot_grid(
+    df: pl.DataFrame,
+    operations: List[str],
+) -> Tuple[matplotlib.figure.Figure, np.ndarray, List[str], List[str]]:
     chunk_shapes: list[str] = cast(list[str], df["chunk_shape"].unique().to_list())
     read_indices: list[str] = cast(list[str], df["read_index"].unique().to_list())
     n_rows = len(chunk_shapes) * len(read_indices)
@@ -118,7 +114,7 @@ def get_subplot_grid(df, operations):
     return fig, axes, chunk_shapes, read_indices
 
 
-def add_info_box(ax, chunk_shape, read_index):
+def add_info_box(ax: matplotlib.axes.Axes, chunk_shape: Optional[str], read_index: Optional[str]) -> None:
     info_lines = []
     if chunk_shape is not None:
         info_lines.append(f"Chunk Size: {chunk_shape}")
@@ -138,14 +134,13 @@ def add_info_box(ax, chunk_shape, read_index):
         )
 
 
-def create_and_save_perf_chart(df: pl.DataFrame, save_dir, file_name="performance_chart.png"):
+def create_and_save_perf_chart(df: pl.DataFrame, save_dir, file_name="performance_chart.png") -> None:
     output_path = save_dir / file_name
 
     operations = df["operation"].unique().to_list()
 
     fig, axes, chunk_shapes, read_indices = get_subplot_grid(df, operations)
-
-    color_map, has_compression = _get_color_map(df)
+    color_map = create_compression_color_map(df["compression"].unique().to_list())
 
     # For each subplot
     for row_idx, (chunk_shape, read_index) in enumerate([(cs, ri) for cs in chunk_shapes for ri in read_indices]):
@@ -159,16 +154,16 @@ def create_and_save_perf_chart(df: pl.DataFrame, save_dir, file_name="performanc
             labels, mean_times, bar_colors = [], [], []
             for row in filtered_df.iter_rows():
                 row_dict = dict(zip(filtered_df.columns, row))
-                label = _get_label(row_dict["format"], row_dict.get("compression", None))
+                label = _get_label(AvailableFormats(row_dict["format"]), row_dict.get("compression"))
                 labels.append(label)
                 mean_times.append(row_dict["mean_time"])
-                bar_colors.append(color_map[label])
+                bar_colors.append(color_map[normalize_compression(row_dict.get("compression"))])
 
             ax.bar(labels, mean_times, color=bar_colors, edgecolor="white", linewidth=0.5)
-            ax.set_xlabel("Format" + ("(Compression)" if has_compression else ""), fontsize=9)
-            ax.set_ylabel("Mean Time", fontsize=9)
+            ax.set_xlabel("Format (Compression)")
+            ax.set_ylabel("Mean Time")
             ax.yaxis.set_major_formatter(FuncFormatter(format_time))
-            ax.tick_params(axis="x", rotation=60 if has_compression else 45, labelsize=8)
+            ax.tick_params(axis="x", rotation=60, labelsize=8)
             ax.tick_params(axis="y", labelsize=8)
             ax.grid(True, alpha=0.3, axis="y")
 
@@ -183,7 +178,11 @@ def create_and_save_perf_chart(df: pl.DataFrame, save_dir, file_name="performanc
     plt.close()
 
 
-def create_and_save_file_size_chart(df: pl.DataFrame, save_dir: Path, file_name: str = "file_size_comparison.png"):
+def create_and_save_file_size_chart(
+    df: pl.DataFrame,
+    save_dir: Path,
+    file_name: str = "file_size_comparison.png",
+) -> None:
     output_path = save_dir / file_name
     write_df = df.filter(pl.col("operation") == "write").filter(pl.col("file_size_bytes") > 0)
 
@@ -203,14 +202,11 @@ def create_and_save_file_size_chart(df: pl.DataFrame, save_dir: Path, file_name:
     fig, ax = plt.subplots(figsize=(10, 6))
     bars = ax.bar(formats, file_sizes, color=colors, edgecolor="white", linewidth=0.5)
 
-    # Customize the plot
-    ax.set_title(
-        "\\textbf{File Size Comparison by Format}\n\\textit{Smaller file sizes indicate better compression}",
-        fontsize=18,
-        pad=25,
-    )
-    ax.set_xlabel("\\textbf{Format}", fontsize=14)
-    ax.set_ylabel("\\textbf{File Size}", fontsize=14)
+    title = "File Size Comparison by Format"
+    subtitle = "Smaller file sizes indicate better compression"
+    ax.set_title(rf"\Large {title}" + "\n" + rf"\normalsize {subtitle}", pad=25)
+    ax.set_xlabel("Format")
+    ax.set_ylabel("File Size")
     ax.tick_params(axis="x", rotation=45, labelsize=10)
     ax.grid(True, alpha=0.3, axis="y")
 
@@ -232,13 +228,13 @@ def create_and_save_file_size_chart(df: pl.DataFrame, save_dir: Path, file_name:
     plt.close()
 
 
-def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_name: str = "memory_usage.png"):
+def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_name: str = "memory_usage.png") -> None:
     output_path = save_dir / file_name
 
     operations = df["operation"].unique().to_list()
     fig, axes, chunk_shapes, read_indices = get_subplot_grid(df, operations)
 
-    color_map, has_compression = _get_color_map(df)
+    color_map = create_compression_color_map(df["compression"].unique().to_list())
 
     for row_idx, (chunk_shape, read_index) in enumerate([(cs, ri) for cs in chunk_shapes for ri in read_indices]):
         for col_idx, operation in enumerate(operations):
@@ -251,16 +247,16 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
             labels, memory_usages, bar_colors = [], [], []
             for row in filtered_df.iter_rows():
                 row_dict = dict(zip(filtered_df.columns, row))
-                label = _get_label(row_dict["format"], row_dict.get("compression", None))
+                label = _get_label(AvailableFormats(row_dict["format"]), row_dict.get("compression"))
                 labels.append(label)
                 memory_usages.append(row_dict["memory_usage_bytes"])
-                bar_colors.append(color_map[label])
+                bar_colors.append(color_map[normalize_compression(row_dict.get("compression"))])
 
             ax.bar(labels, memory_usages, color=bar_colors, edgecolor="white", linewidth=0.5)
-            ax.set_xlabel("Format" + ("(Compression)" if has_compression else ""), fontsize=9)
-            ax.set_ylabel("Memory Usage (bytes)", fontsize=9)
+            ax.set_xlabel("Format (Compression)")
+            ax.set_ylabel("Memory Usage (bytes)")
             ax.yaxis.set_major_formatter(FuncFormatter(format_bytes))
-            ax.tick_params(axis="x", rotation=60 if has_compression else 45, labelsize=8)
+            ax.tick_params(axis="x", rotation=60, labelsize=8)
             ax.tick_params(axis="y", labelsize=8)
             ax.grid(True, alpha=0.3, axis="y")
 
@@ -274,16 +270,7 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
     plt.close()
 
 
-def get_marker_for_compression(compression):
-    # Assign a marker for each compression type for clarity
-    markers = ["o", "s", "D", "^", "v", "P", "*", "X", "<", ">"]
-    if compression is None or compression == "none" or compression == "":
-        return "o"
-    # Deterministic assignment
-    return markers[hash(compression) % len(markers)]
-
-
-def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_size_vs_time.png"):
+def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_size_vs_time.png") -> None:
     output_path = save_dir / file_name
 
     # Only consider 'read' operation
@@ -291,7 +278,7 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
     if df.height == 0:
         raise ValueError("No read operation data found.")
 
-    read_indices = df["read_index"].unique().to_list() if "read_index" in df.columns else [None]
+    read_indices = df["read_index"].unique().sort().to_list() if "read_index" in df.columns else [None]
     chunk_shapes = df["chunk_shape"].unique().to_list() if "chunk_shape" in df.columns else [None]
 
     assert len(chunk_shapes) == 1, f"Expected 1 chunk shape, got {len(chunk_shapes)}"
@@ -306,10 +293,8 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
     plt.subplots_adjust(wspace=0.35, hspace=0.3, top=0.84)
     plt.subplots_adjust(right=0.78)
 
-    # Color by format, marker by compression
-    unique_formats = df["format"].unique().to_list()
-    base_colors = sns.color_palette("colorblind", n_colors=len(unique_formats))
-    format_color_map = dict(zip(unique_formats, base_colors))
+    # Color by compression, marker by format
+    compression_color_map = create_compression_color_map(df["compression"].unique().to_list())
 
     chunk_shape = chunk_shapes[0]
     # Build legend (only unique labels)
@@ -330,13 +315,20 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
             # Plot each (format, compression) as a point
             for row in filtered_df.iter_rows():
                 row_dict = dict(zip(filtered_df.columns, row))
-                fmt = row_dict["format"]
-                compression = row_dict.get("compression", None)
-                color = format_color_map[fmt]
-                marker = get_marker_for_compression(compression)
+                fmt: AvailableFormats = AvailableFormats(row_dict["format"])
+                compression = normalize_compression(row_dict.get("compression"))
+                color = compression_color_map[compression]
+                marker = get_marker_for_format(fmt)
                 label = _get_label(fmt, compression)
+                array_shape_str = row_dict["array_shape"]
+                # Remove parentheses if present, then split and convert to int
+                array_shape_tuple: tuple[int, ...] = tuple(
+                    int(x) for x in array_shape_str.strip("()").split(",") if x.strip()
+                )
+                total_size_bytes = reduce(lambda x, y: x * y, array_shape_tuple) * 4  # bytes per float
+                # total_size_bytes = total_size_bytes * 4 # bytes per float
                 ax.scatter(
-                    row_dict["file_size_bytes"],
+                    total_size_bytes / row_dict["file_size_bytes"],
                     row_dict["mean_time"],
                     color=color,
                     marker=marker,
@@ -345,26 +337,24 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
                     label=label,
                 )
 
-            ax.set_xlabel("File Size", fontsize=11)
-            ax.set_ylabel("Mean Read Time", fontsize=11)
-            ax.set_xscale("log", base=2)
-            ax.set_yscale("log")
+            ax.set_xlabel("Compression Ratio")
+            ax.set_ylabel("Mean Read Time")
+            # ax.set_xscale("log", base=2)
+            # ax.set_yscale("log")
             ax.yaxis.set_major_formatter(FuncFormatter(format_time))
             ax.yaxis.set_minor_formatter(FuncFormatter(format_time))
-            ax.xaxis.set_major_formatter(FuncFormatter(format_bytes))
-            ax.xaxis.set_minor_formatter(FuncFormatter(format_bytes))
             ax.minorticks_on()
             ax.grid(True, alpha=0.3, axis="both")
             ax.grid(which="minor", alpha=0.2)
             ax.tick_params(axis="both", which="both", labelsize=8)
-            ax.set_title(f"Random read of size {str(read_index)}", fontsize=11)
+            ax.set_title(f"Random read of size {str(read_index)}")
 
             for row in filtered_df.iter_rows():
                 row_dict = dict(zip(filtered_df.columns, row))
-                fmt = row_dict["format"]
-                compression = row_dict.get("compression", None)
-                color = format_color_map[fmt]
-                marker = get_marker_for_compression(compression)
+                fmt: AvailableFormats = AvailableFormats(row_dict["format"])
+                compression = normalize_compression(row_dict.get("compression"))
+                color = compression_color_map[compression]
+                marker = get_marker_for_format(fmt)
                 label = _get_label(fmt, compression)
                 if label not in seen:
                     handles.append(
@@ -382,17 +372,14 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
                     seen.add(label)
         fig.legend(handles=handles, loc="center right", fontsize=8, frameon=True)
 
-    fig.suptitle(
-        r"\Large File Size vs. Mean Read Time (log-log)"
-        "\n"
-        r"\normalsize File Chunk Shape " + str(chunk_shape),
-        y=0.96,
-    )
+    title = "File Size vs. Mean Read Time"
+    subtitle = "File Chunk Shape " + str(chunk_shape)
+    fig.suptitle(rf"\Large {title}" + "\n" + rf"\normalsize {subtitle}", y=0.92)
     plt.savefig(output_path, dpi=400, bbox_inches="tight", facecolor="white")
     plt.close()
 
 
-def plot_radviz_results(df: pl.DataFrame, save_dir, file_name="radviz_results.png"):
+def plot_radviz_results(df: pl.DataFrame, save_dir, file_name="radviz_results.png") -> None:
     output_path = save_dir / file_name
 
     # Convert to pandas DataFrame
@@ -417,7 +404,7 @@ def plot_radviz_results(df: pl.DataFrame, save_dir, file_name="radviz_results.pn
     # Add a label column for color grouping (format+compression)
     def label_row(row):
         if "compression" in pdf.columns:
-            return _get_label(row["format"], row["compression"])
+            return _get_label(AvailableFormats(row["format"]), row["compression"])
         else:
             return row["format"]
 
@@ -464,7 +451,7 @@ def plot_radviz_results(df: pl.DataFrame, save_dir, file_name="radviz_results.pn
         col = idx % ncols
         axes[row, col].set_visible(False)
 
-    fig.suptitle("Radviz Visualization by Read Index", fontsize=16, y=0.98)
+    fig.suptitle("Radviz Visualization by Read Index", y=0.98)
     plt.tight_layout()
     plt.savefig(output_path, dpi=400, bbox_inches="tight", facecolor="white")
     plt.close()
