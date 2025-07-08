@@ -172,5 +172,5 @@ async def run_multiple_benchmarks(
         max=max(times),
         cpu_mean=statistics.mean(cpu_times),
         cpu_std=statistics.stdev(cpu_times) if len(cpu_times) > 1 else 0.0,
-        memory_usage=statistics.mean(memory_usages),
+        memory_usage=statistics.mean(memory_usages) if len(memory_usages) >= 1 else 0.0,
     )

@@ -2,13 +2,14 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, Optional, Tuple
+from typing import TYPE_CHECKING, Literal, Optional, Tuple, Union
 
 import h5py
 import numcodecs.abc
 from h5py._hl.filters import Gzip
-from hdf5plugin import Blosc, Blosc2
+from hdf5plugin import SZ, Blosc, Blosc2
 from numcodecs.zarr3 import ArrayArrayCodec
+from pandas._libs.tslibs.offsets import CBMonthBegin
 from zarr.abc.codec import ArrayBytesCodec
 
 if TYPE_CHECKING:
@@ -43,20 +44,31 @@ class FormatWriterConfig(ABC):
 class HDF5Config(FormatWriterConfig):
     """Configuration for HDF5 writer."""
 
-    compression: Optional[h5py.filters.FilterRefBase] = None
+    compression: Optional[Union[h5py.filters.FilterRefBase, Literal["gzip", "lzf", "szip"]]] = None
+    scale_offset: Optional[int] = None
+    compression_opts: Optional[tuple] = None
+    explicitly_convert_to_int: bool = False
 
     @property
     def compression_identifier(self) -> str:
         """Name and compression level"""
+        compression_str = ""
         if self.compression is None:
-            return "none"
-        return f"{self.compression.filter_id}_{self.compression.filter_options}"
+            compression_str = "none"
+        elif isinstance(self.compression, str):
+            compression_str = self.compression + str(self.compression_opts)
+        else:
+            compression_str = f"{self.compression.filter_id}_{self.compression.filter_options}"
+
+        return f"{compression_str}_{self.scale_offset}_{self.explicitly_convert_to_int}"
 
     @property
     def compression_pretty_name(self) -> str:
         """Pretty name of the compression"""
         if self.compression is None:
             return "none"
+        elif isinstance(self.compression, str):
+            return self.compression + str(self.compression_opts) + str(self.scale_offset)
         elif self.compression.__class__ is Gzip:
             return f"{self.compression.__class__.__name__} ({self.compression.filter_options[0]})"  # type: ignore
         elif self.compression.__class__ is Blosc:
@@ -67,6 +79,8 @@ class HDF5Config(FormatWriterConfig):
             clevel = self.compression.filter_options[4]  # type: ignore
             return f"{self.compression.__class__.__name__} {cname} clevel {clevel}"
         elif self.compression.__class__ is Blosc2:
+            return f"{self.compression.__class__.__name__} ({self.compression.filter_options[0]})"  # type: ignore
+        elif self.compression.__class__ is SZ:
             return f"{self.compression.__class__.__name__} ({self.compression.filter_options[0]})"  # type: ignore
         else:
             raise ValueError(f"Unknown compression type: {self.compression.__class__.__name__}")
@@ -121,19 +135,22 @@ class NetCDFConfig(FormatWriterConfig):
     """Configuration for NetCDF writer."""
 
     compression: Optional[CompressionType] = None
-    compression_level: Optional[CompressionLevel] = None
+    compression_level: Optional[CompressionLevel] = 4
+    scale_factor: float = 1.0
+    add_offset: float = 0.0
+    significant_digits: int = 6
 
     @property
     def compression_identifier(self) -> str:
         if self.compression is None:
             return "none"
-        return f"{self.compression}_{self.compression_level}"
+        return f"{self.compression}_{self.compression_level}_scale_{self.scale_factor}_offset_{self.add_offset}_digits_{self.significant_digits}"
 
     @property
     def compression_pretty_name(self) -> str:
         if self.compression is None:
             return "None"
-        return f"{self.compression} {self.compression_level}"
+        return f"{self.compression} {self.compression_level} scale {self.scale_factor} offset {self.add_offset} digits {self.significant_digits}"
 
 
 @dataclass

@@ -28,7 +28,12 @@ async def bm_write_format(
     def memory_write():
         writer.write(data)
 
-    write_stats = await run_multiple_benchmarks(time_write, memory_write, metadata.iterations)
+    write_stats = await run_multiple_benchmarks(
+        time_write,
+        memory_write,
+        time_iterations=metadata.iterations,
+        memory_iterations=0,
+    )
     write_stats.file_size = writer.get_file_size()
     benchmark_record = BenchmarkRecord.from_benchmark_stats(write_stats, format, "write", metadata)
     return benchmark_record

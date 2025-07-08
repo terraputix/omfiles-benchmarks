@@ -51,6 +51,32 @@ chunk_sizes = {
 }
 
 READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
+    (
+        AvailableFormats.NetCDF,
+        NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", significant_digits=2),
+    ),
+    (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", scale_factor=1.0)),
+    (
+        AvailableFormats.HDF5,
+        # https://hdfgroup.github.io/hdf5/develop/group___s_z_i_p.html#ga688fde8106225adf9e6ccd2a168dec74
+        # https://hdfgroup.github.io/hdf5/develop/_h5_d__u_g.html#title6
+        # 1st 'nn' stands for: H5_SZIP_NN_OPTION_MASK
+        # 2nd 32 stands for: 32 pixels per block
+        HDF5Config(chunk_size=chunk_sizes["small"], compression="szip", compression_opts=("nn", 32), scale_offset=2),
+    ),
+    (
+        AvailableFormats.HDF5,
+        # https://hdfgroup.github.io/hdf5/develop/group___s_z_i_p.html#ga688fde8106225adf9e6ccd2a168dec74
+        # https://hdfgroup.github.io/hdf5/develop/_h5_d__u_g.html#title6
+        # 1st 'nn' stands for: H5_SZIP_NN_OPTION_MASK
+        # 2nd 32 stands for: 32 pixels per block
+        HDF5Config(
+            chunk_size=chunk_sizes["small"],
+            compression="szip",
+            compression_opts=("nn", 32),
+            explicitly_convert_to_int=True,
+        ),
+    ),
     (AvailableFormats.HDF5, HDF5Config(chunk_size=chunk_sizes["small"])),
     (
         AvailableFormats.HDF5,
@@ -64,6 +90,13 @@ READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
         HDF5Config(
             chunk_size=chunk_sizes["small"],
             compression=hdf5plugin.Blosc(cname="lz4", clevel=4, shuffle=hdf5plugin.Blosc.SHUFFLE),
+        ),
+    ),
+    (
+        AvailableFormats.HDF5,
+        HDF5Config(
+            chunk_size=chunk_sizes["small"],
+            compression=hdf5plugin.SZ(absolute=0.01),
         ),
     ),
     # (AvailableFormats.HDF5Hidefix, HDF5Config(chunk_size=chunk_sizes["small"])),
@@ -152,10 +185,11 @@ READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
 
 @app.command()
 async def main(
-    read_iterations: int = typer.Option(5, help="Number of times to repeat each benchmark for more reliable results."),
+    read_iterations: int = typer.Option(2, help="Number of times to repeat each benchmark for more reliable results."),
     write_iterations: int = typer.Option(1, help="Number of times to repeat each benchmark for more reliable results."),
     clear_cache: bool = typer.Option(True, help="Clear the cache during single benchmark iterations."),
     plot_only: bool = typer.Option(False, help="Only plot the results without running the benchmarks."),
+    skip_measure_memory: bool = typer.Option(True, help="Measure memory usage during benchmarking."),
 ):
     # Gather results
     results_dir, plots_dir = get_script_dirs(__file__)
@@ -225,8 +259,11 @@ async def main(
                             times.append(result.elapsed)
                             cpu_times.append(result.cpu_elapsed)
 
-                            result = await memory_read()
-                            memory_usages.append(result.memory_total_allocations)
+                            if skip_measure_memory:
+                                memory_usages.append(0)
+                            else:
+                                result = await memory_read()
+                                memory_usages.append(result.memory_total_allocations)
 
                             file_size = reader.get_file_size()
 

@@ -342,7 +342,7 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
             # ax.set_xscale("log", base=2)
             # ax.set_yscale("log")
             ax.yaxis.set_major_formatter(FuncFormatter(format_time))
-            ax.yaxis.set_minor_formatter(FuncFormatter(format_time))
+            # ax.yaxis.set_minor_formatter(FuncFormatter(format_time))
             ax.minorticks_on()
             ax.grid(True, alpha=0.3, axis="both")
             ax.grid(which="minor", alpha=0.2)

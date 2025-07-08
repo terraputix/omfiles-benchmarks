@@ -7,6 +7,7 @@ from typing import Generic, TypeVar
 
 import h5py
 import netCDF4 as nc
+import numpy as np
 import omfiles as om
 import zarr
 from zarr.core.buffer import NDArrayLike
@@ -50,11 +51,19 @@ class BaseWriter(ABC, Generic[ConfigType]):
 class HDF5Writer(BaseWriter[HDF5Config]):
     def write(self, data: NDArrayLike) -> None:
         with h5py.File(self.filename, "w") as f:
+            if self.config.explicitly_convert_to_int:
+                # Fixme: This is just hardcoded for now.
+                # Ideally we would be using this from netcdf4, so that we can specify the correct
+                # scaling factor and offset converting to int32
+                data = (data * 100).astype(np.int32)  # type: ignore
+
             f.create_dataset(
                 "dataset",
                 data=data,
                 chunks=self.config.chunk_size,
                 compression=self.config.compression,
+                compression_opts=self.config.compression_opts,
+                scaleoffset=self.config.scale_offset,
             )
 
 
@@ -79,6 +88,9 @@ class ZarrWriter(BaseWriter[ZarrConfig]):
 class NetCDFWriter(BaseWriter[NetCDFConfig]):
     def write(self, data: NDArrayLike) -> None:
         with nc.Dataset(self.filename, "w", format="NETCDF4") as ds:
+            print("nc.__has_szip_support__", nc.__has_szip_support__)
+            print("nc.__has_blosc_support__", nc.__has_blosc_support__)
+            print("ds.has_szip_filter()", ds.has_szip_filter())
             dimension_names = tuple(f"dim{i}" for i in range(data.ndim))
             for dim, size in zip(dimension_names, data.shape):
                 ds.createDimension(dim, size)
@@ -90,8 +102,15 @@ class NetCDFWriter(BaseWriter[NetCDFConfig]):
                 compression=self.config.compression,
                 complevel=self.config.compression_level,
                 chunksizes=self.config.chunk_size,
+                szip_coding="nn",
+                szip_pixels_per_block=32,
+                significant_digits=self.config.significant_digits,
             )
+            var.scale_factor = self.config.scale_factor
+            var.add_offset = self.config.add_offset
             var[:] = data
+
+            print("ds.variables['dataset'].filters()", ds.variables["dataset"].filters())
 
 
 class OMWriter(BaseWriter[OMConfig]):
