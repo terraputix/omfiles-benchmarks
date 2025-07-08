@@ -7,6 +7,7 @@ from typing import List, Tuple
 import hdf5plugin
 import numcodecs
 import numcodecs.zarr3
+import polars as pl
 import typer
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
@@ -307,10 +308,26 @@ async def main(
         results_df.print_summary()
 
         # Create visualizations
-        create_and_save_perf_chart(results_df.df, plots_dir, file_name=f"performance_chart_{chunk_size}.png")
-        create_and_save_memory_usage_chart(results_df.df, plots_dir, file_name=f"memory_usage_chart_{chunk_size}.png")
-        create_scatter_size_vs_time(results_df.df, plots_dir, file_name=f"scatter_size_vs_time_{chunk_size}.png")
-        plot_radviz_results(results_df.df, plots_dir, file_name=f"radviz_results_{chunk_size}.png")
+        create_and_save_perf_chart(
+            results_df.df.filter(pl.col("operation") == "read"),
+            plots_dir,
+            file_name=f"performance_chart_{chunk_size}.png",
+        )
+        create_and_save_memory_usage_chart(
+            results_df.df.filter(pl.col("operation") == "read"),
+            plots_dir,
+            file_name=f"memory_usage_chart_{chunk_size}.png",
+        )
+        create_scatter_size_vs_time(
+            results_df.df.filter(pl.col("operation") == "read"),
+            plots_dir,
+            file_name=f"scatter_size_vs_time_{chunk_size}.png",
+        )
+        plot_radviz_results(
+            results_df.df.filter(pl.col("operation") == "read"),
+            plots_dir,
+            file_name=f"radviz_results_{chunk_size}.png",
+        )
 
 
 if __name__ == "__main__":

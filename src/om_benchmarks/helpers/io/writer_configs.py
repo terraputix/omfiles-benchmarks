@@ -9,7 +9,6 @@ import numcodecs.abc
 from h5py._hl.filters import Gzip
 from hdf5plugin import SZ, Blosc, Blosc2
 from numcodecs.zarr3 import ArrayArrayCodec
-from pandas._libs.tslibs.offsets import CBMonthBegin
 from zarr.abc.codec import ArrayBytesCodec
 
 if TYPE_CHECKING:
@@ -144,6 +143,7 @@ class NetCDFConfig(FormatWriterConfig):
     def compression_identifier(self) -> str:
         if self.compression is None:
             return "none"
+            # return f"{self.compression}_{self.compression_level}_scale_{self.scale_factor}_offset_{str(int(self.add_offset))}_digits_{self.significant_digits}"
         return f"{self.compression}_{self.compression_level}_scale_{self.scale_factor}_offset_{self.add_offset}_digits_{self.significant_digits}"
 
     @property

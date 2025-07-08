@@ -1,6 +1,6 @@
 from functools import reduce
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, cast
+from typing import List, Optional, Sequence, Tuple, cast
 
 import matplotlib.axes
 import matplotlib.figure
@@ -78,7 +78,7 @@ def _get_label(format: AvailableFormats, compression: Optional[str]) -> str:
 
 def get_marker_for_format(fmt: AvailableFormats) -> str:
     """Get marker symbol for a format."""
-    marker_map = {
+    marker_map: dict[AvailableFormats, str] = {
         AvailableFormats.HDF5: "o",
         AvailableFormats.HDF5Hidefix: "s",
         AvailableFormats.Zarr: "D",
@@ -90,13 +90,10 @@ def get_marker_for_format(fmt: AvailableFormats) -> str:
     return marker_map[fmt]
 
 
-def create_compression_color_map(compressions: list[str]) -> Dict[str, Tuple[float, float, float]]:
-    """Create a color map for compression types using colorblind-friendly palette."""
-    # Normalize compression names
-    normalized_compressions = [normalize_compression(comp) for comp in compressions]
-    unique_compressions = list(set(normalized_compressions))
-    base_colors = sns.color_palette("colorblind", n_colors=len(unique_compressions))
-    return dict(zip(unique_compressions, base_colors))
+def get_color_palette(categories: Sequence[str]) -> dict[str, tuple[float, float, float]]:
+    unique = list(dict.fromkeys(categories))  # preserve order
+    palette = sns.color_palette("colorblind", n_colors=len(unique))
+    return dict(zip(unique, palette))
 
 
 def get_subplot_grid(
@@ -134,13 +131,13 @@ def add_info_box(ax: matplotlib.axes.Axes, chunk_shape: Optional[str], read_inde
         )
 
 
-def create_and_save_perf_chart(df: pl.DataFrame, save_dir, file_name="performance_chart.png") -> None:
+def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str = "performance_chart.png") -> None:
     output_path = save_dir / file_name
 
     operations = df["operation"].unique().to_list()
 
     fig, axes, chunk_shapes, read_indices = get_subplot_grid(df, operations)
-    color_map = create_compression_color_map(df["compression"].unique().to_list())
+    color_map = get_color_palette([normalize_compression(c) for c in df["compression"].to_list()])
 
     # For each subplot
     for row_idx, (chunk_shape, read_index) in enumerate([(cs, ri) for cs in chunk_shapes for ri in read_indices]):
@@ -169,10 +166,9 @@ def create_and_save_perf_chart(df: pl.DataFrame, save_dir, file_name="performanc
 
             add_info_box(ax, chunk_shape, read_index)
 
-    # Main title
-    main_title = "Performance Comparison by Format"
+    title = "Performance Comparison by Format"
     subtitle = "Lower execution time indicates better performance"
-    plt.suptitle(f"{main_title}\n{subtitle}", fontsize=14, y=0.94)
+    fig.suptitle(rf"\Large {title}" + "\n" + rf"\normalsize {subtitle}", y=0.85)
 
     plt.savefig(output_path, dpi=400, bbox_inches="tight", facecolor="white")
     plt.close()
@@ -193,14 +189,18 @@ def create_and_save_file_size_chart(
     # Sort by file size (descending)
     write_df = write_df.sort("file_size_bytes", descending=True)
 
-    formats = write_df["format"].to_list()
+    labels = [
+        _get_label(AvailableFormats(fmt), write_df["compression"][i])
+        for i, fmt in enumerate(write_df["format"].to_list())
+    ]
     file_sizes = write_df["file_size_bytes"].to_list()
 
     # Create colors
-    colors = plt.cm.tab20(np.linspace(0, 1, len(formats)))
+    color_map = get_color_palette(labels)
+    colors = [color_map[label] for label in labels]
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    bars = ax.bar(formats, file_sizes, color=colors, edgecolor="white", linewidth=0.5)
+    bars = ax.bar(labels, file_sizes, color=colors, edgecolor="white", linewidth=0.5)
 
     title = "File Size Comparison by Format"
     subtitle = "Smaller file sizes indicate better compression"
@@ -223,7 +223,6 @@ def create_and_save_file_size_chart(
             rotation=90,
         )
 
-    plt.tight_layout()
     plt.savefig(output_path, dpi=400, bbox_inches="tight", facecolor="white")
     plt.close()
 
@@ -234,7 +233,7 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
     operations = df["operation"].unique().to_list()
     fig, axes, chunk_shapes, read_indices = get_subplot_grid(df, operations)
 
-    color_map = create_compression_color_map(df["compression"].unique().to_list())
+    color_map = get_color_palette([normalize_compression(c) for c in df["compression"].to_list()])
 
     for row_idx, (chunk_shape, read_index) in enumerate([(cs, ri) for cs in chunk_shapes for ri in read_indices]):
         for col_idx, operation in enumerate(operations):
@@ -262,9 +261,9 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
 
             add_info_box(ax, chunk_shape, read_index)
 
-    main_title = "Memory Usage by Format and Operation"
+    title = "Memory Usage by Format and Operation"
     subtitle = "Lower memory usage indicates better efficiency"
-    plt.suptitle(f"{main_title}\n{subtitle}", fontsize=14, y=0.94)
+    fig.suptitle(rf"\Large {title}" + "\n" + rf"\normalsize {subtitle}", y=0.85)
 
     plt.savefig(output_path, dpi=400, bbox_inches="tight", facecolor="white")
     plt.close()
@@ -294,7 +293,7 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
     plt.subplots_adjust(right=0.78)
 
     # Color by compression, marker by format
-    compression_color_map = create_compression_color_map(df["compression"].unique().to_list())
+    color_map = get_color_palette([normalize_compression(c) for c in df["compression"].to_list()])
 
     chunk_shape = chunk_shapes[0]
     # Build legend (only unique labels)
@@ -317,7 +316,7 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
                 row_dict = dict(zip(filtered_df.columns, row))
                 fmt: AvailableFormats = AvailableFormats(row_dict["format"])
                 compression = normalize_compression(row_dict.get("compression"))
-                color = compression_color_map[compression]
+                color = color_map[compression]
                 marker = get_marker_for_format(fmt)
                 label = _get_label(fmt, compression)
                 array_shape_str = row_dict["array_shape"]
@@ -353,7 +352,7 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
                 row_dict = dict(zip(filtered_df.columns, row))
                 fmt: AvailableFormats = AvailableFormats(row_dict["format"])
                 compression = normalize_compression(row_dict.get("compression"))
-                color = compression_color_map[compression]
+                color = color_map[compression]
                 marker = get_marker_for_format(fmt)
                 label = _get_label(fmt, compression)
                 if label not in seen:
@@ -403,10 +402,7 @@ def plot_radviz_results(df: pl.DataFrame, save_dir, file_name="radviz_results.pn
 
     # Add a label column for color grouping (format+compression)
     def label_row(row):
-        if "compression" in pdf.columns:
-            return _get_label(AvailableFormats(row["format"]), row["compression"])
-        else:
-            return row["format"]
+        return _get_label(AvailableFormats(row["format"]), row["compression"])
 
     pdf["label"] = pdf.apply(label_row, axis=1)
 
@@ -434,12 +430,12 @@ def plot_radviz_results(df: pl.DataFrame, save_dir, file_name="radviz_results.pn
             continue
 
         # Only keep radviz columns and label
-        sub_pdf_plot: pd.DataFrame = sub_pdf[radviz_cols + ["label"]].copy()
+        sub_pdf_plot: pd.DataFrame = cast(pd.DataFrame, sub_pdf[radviz_cols + ["label"]].copy())
 
         pd.plotting.radviz(
             sub_pdf_plot,
             class_column="label",
-            color=sns.color_palette("colorblind", n_colors=sub_pdf_plot["label"].nunique()),
+            colormap="tab10",
             ax=ax,
         )
         ax.set_title(f"Read Index: {pretty_read_index(read_index)}" if read_index is not None else "All Read Indices")
