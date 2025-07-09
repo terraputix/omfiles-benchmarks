@@ -104,7 +104,7 @@ class ZarrConfig(FormatWriterConfig):
         compressor_str: str = "auto"
         serializer_str: str = "auto"
         filter_str: str = "auto"
-        if self.compressor != "auto":
+        if self.compressor != "auto" and self.compressor is not None:
             compressor_str = f"{self.compressor.codec_id}_{self.compressor.get_config()}"
         if self.serializer != "auto":
             serializer_str = f"{self.serializer.__class__.__name__}"
@@ -117,7 +117,7 @@ class ZarrConfig(FormatWriterConfig):
         compressor_str = "auto"
         serializer_str = "auto"
         filter_str = "auto"
-        if self.compressor != "auto":
+        if self.compressor != "auto" and self.compressor is not None:
             codec_config = self.compressor.get_config()
             compressor_str = (
                 f"{codec_config['id']} {codec_config.get('cname', 'auto')} {codec_config.get('clevel', 'auto')}"
