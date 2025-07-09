@@ -16,6 +16,7 @@ from om_benchmarks.helpers.era5 import read_era5_data
 from om_benchmarks.helpers.formats import AvailableFormats
 from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig, HDF5Config, NetCDFConfig, OMConfig, ZarrConfig
 from om_benchmarks.helpers.plotting import (
+    create_and_save_compression_ratio_chart,
     create_and_save_memory_usage_chart,
     create_and_save_perf_chart,
     create_scatter_size_vs_time,
@@ -327,6 +328,11 @@ async def main(
             results_df.df.filter(pl.col("operation") == "read"),
             plots_dir,
             file_name=f"radviz_results_{chunk_size}.png",
+        )
+        create_and_save_compression_ratio_chart(
+            results_df.df.filter(pl.col("operation") == "read"),
+            plots_dir,
+            file_name=f"compression_ratio_chart_{chunk_size}.png",
         )
 
 

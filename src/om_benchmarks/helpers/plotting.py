@@ -131,6 +131,13 @@ def add_info_box(ax: matplotlib.axes.Axes, chunk_shape: Optional[str], read_inde
         )
 
 
+def _uncompressed_size_from_array_shape(array_shape: str, bytes_per_element: int = 4) -> int:
+    # Remove parentheses if present, then split and convert to int
+    array_shape_tuple: tuple[int, ...] = tuple(int(x) for x in array_shape.strip("()").split(",") if x.strip())
+    total_size_bytes = reduce(lambda x, y: x * y, array_shape_tuple) * bytes_per_element
+    return total_size_bytes
+
+
 def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str = "performance_chart.png") -> None:
     output_path = save_dir / file_name
 
@@ -142,7 +149,7 @@ def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str 
     # For each subplot
     for row_idx, (chunk_shape, read_index) in enumerate([(cs, ri) for cs in chunk_shapes for ri in read_indices]):
         for col_idx, operation in enumerate(operations):
-            ax = axes[row_idx, col_idx]
+            ax: matplotlib.axes.Axes = axes[row_idx, col_idx]
             filtered_df = df.filter(pl.col("operation") == operation)
             filtered_df = filtered_df.filter(pl.col("chunk_shape") == chunk_shape)
             filtered_df = filtered_df.filter(pl.col("read_index") == read_index)
@@ -174,54 +181,47 @@ def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str 
     plt.close()
 
 
-def create_and_save_file_size_chart(
+def create_and_save_compression_ratio_chart(
     df: pl.DataFrame,
     save_dir: Path,
-    file_name: str = "file_size_comparison.png",
+    file_name: str = "compression_ratio_comparison.png",
 ) -> None:
     output_path = save_dir / file_name
-    write_df = df.filter(pl.col("operation") == "write").filter(pl.col("file_size_bytes") > 0)
+    filtered_df = df.filter(pl.col("file_size_bytes") > 0)
 
-    if write_df.height == 0:
+    if filtered_df.height == 0:
         print("No write data with file sizes > 0 found")
         return
 
-    # Sort by file size (descending)
-    write_df = write_df.sort("file_size_bytes", descending=True)
+    # add compression_ratio column
+    filtered_df = filtered_df.with_columns(
+        pl.struct(["array_shape", "file_size_bytes"])
+        .map_elements(
+            lambda row: _uncompressed_size_from_array_shape(row["array_shape"]) / row["file_size_bytes"],
+            return_dtype=pl.Float32,
+        )
+        .alias("compression_ratio")
+    )
+    filtered_df = filtered_df.sort("compression_ratio", descending=True)
 
     labels = [
-        _get_label(AvailableFormats(fmt), write_df["compression"][i])
-        for i, fmt in enumerate(write_df["format"].to_list())
+        _get_label(AvailableFormats(fmt), filtered_df["compression"][i])
+        for i, fmt in enumerate(filtered_df["format"].to_list())
     ]
-    file_sizes = write_df["file_size_bytes"].to_list()
+    compression_ratios = filtered_df["compression_ratio"].to_list()
 
-    # Create colors
     color_map = get_color_palette(labels)
     colors = [color_map[label] for label in labels]
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    bars = ax.bar(labels, file_sizes, color=colors, edgecolor="white", linewidth=0.5)
+    ax.bar(labels, compression_ratios, color=colors, edgecolor="white", linewidth=0.5)
 
-    title = "File Size Comparison by Format"
-    subtitle = "Smaller file sizes indicate better compression"
-    ax.set_title(rf"\Large {title}" + "\n" + rf"\normalsize {subtitle}", pad=25)
-    ax.set_xlabel("Format")
-    ax.set_ylabel("File Size")
-    ax.tick_params(axis="x", rotation=45, labelsize=10)
+    title = "Compression Ratio Comparison for different formats and compression schemas"
+    ax.set_title(rf"\Large {title}", pad=25)
+    ax.set_xlabel("Format (Compression)")
+    ax.set_ylabel("Compression Ratio")
+    ax.tick_params(axis="x", rotation=90, labelsize=9)
     ax.grid(True, alpha=0.3, axis="y")
-
-    # Add value labels on bars
-    for bar, value in zip(bars, file_sizes):
-        height = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2.0,
-            height + height * 0.01,
-            f"{value:,}",
-            ha="center",
-            va="bottom",
-            fontsize=9,
-            rotation=90,
-        )
 
     plt.savefig(output_path, dpi=400, bbox_inches="tight", facecolor="white")
     plt.close()
@@ -237,7 +237,7 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
 
     for row_idx, (chunk_shape, read_index) in enumerate([(cs, ri) for cs in chunk_shapes for ri in read_indices]):
         for col_idx, operation in enumerate(operations):
-            ax = axes[row_idx, col_idx]
+            ax: matplotlib.axes.Axes = axes[row_idx, col_idx]
             filtered_df = df.filter(pl.col("operation") == operation)
             filtered_df = filtered_df.filter(pl.col("chunk_shape") == chunk_shape)
             filtered_df = filtered_df.filter(pl.col("read_index") == read_index)
@@ -319,13 +319,8 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
                 color = color_map[compression]
                 marker = get_marker_for_format(fmt)
                 label = _get_label(fmt, compression)
-                array_shape_str = row_dict["array_shape"]
-                # Remove parentheses if present, then split and convert to int
-                array_shape_tuple: tuple[int, ...] = tuple(
-                    int(x) for x in array_shape_str.strip("()").split(",") if x.strip()
-                )
-                total_size_bytes = reduce(lambda x, y: x * y, array_shape_tuple) * 4  # bytes per float
-                # total_size_bytes = total_size_bytes * 4 # bytes per float
+                total_size_bytes = _uncompressed_size_from_array_shape(row_dict["array_shape"])
+
                 ax.scatter(
                     total_size_bytes / row_dict["file_size_bytes"],
                     row_dict["mean_time"],
