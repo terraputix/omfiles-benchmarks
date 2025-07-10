@@ -6,6 +6,7 @@ const {
   FileBackendNode,
   OmDataType,
 } = require("@openmeteo/file-reader");
+const fs = require("fs");
 
 async function main() {
   // Parse command line arguments
@@ -21,8 +22,11 @@ async function main() {
 
   const filePath = args[0];
 
+  // We load the file into a buffer, because we want to benchmark
+  // the decoding performance, not how fast the file system is.
+  const buffer = fs.readFileSync(filePath);
   // Create reader instance
-  const backend = new FileBackendNode(filePath);
+  const backend = new FileBackendNode(buffer);
   const reader = await OmFileReader.create(backend);
 
   // Default values
