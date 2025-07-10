@@ -1,0 +1,24 @@
+{
+  "originHash" : "6d0132c469eed60dcaeaf5680c44cff6efed729ec88d5a219504794684d8fb2f",
+  "pins" : [
+    {
+      "identity" : "om-file-format",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/open-meteo/om-file-format.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "01b48bf682c50e736749569cc2320298a08e80a9"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser.git",
+      "state" : {
+        "revision" : "309a47b2b1d9b5e991f36961c983ecec72275be3",
+        "version" : "1.6.1"
+      }
+    }
+  ],
+  "version" : 3
+}

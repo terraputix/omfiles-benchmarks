@@ -1,0 +1,8 @@
+[package]
+name = "om-rust-bm"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+omfiles-rs = { git = "https://github.com/terraputix/omfiles-rs", rev = "351fe05f66b4ba423fc4a09bbfcd486e9d679a9d" }
+clap = "2.33"
