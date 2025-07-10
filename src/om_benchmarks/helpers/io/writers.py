@@ -10,6 +10,7 @@ import netCDF4 as nc
 import numpy as np
 import omfiles as om
 import zarr
+import zarr.storage
 from zarr.core.buffer import NDArrayLike
 
 from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig, HDF5Config, NetCDFConfig, OMConfig, ZarrConfig
@@ -69,28 +70,26 @@ class HDF5Writer(BaseWriter[HDF5Config]):
 
 class ZarrWriter(BaseWriter[ZarrConfig]):
     def write(self, data: NDArrayLike) -> None:
-        root = zarr.open(str(self.filename), mode="w", zarr_format=self.config.zarr_format)
-        # Ensure root is a Group and not an Array (for type checker)
-        if not isinstance(root, zarr.Group):
-            raise TypeError("Expected root to be a zarr.hierarchy.Group")
-        arr_0 = root.create_array(
-            "arr_0",
-            shape=data.shape,
-            chunks=self.config.chunk_size,
-            dtype=self.config.dtype,
-            compressors=self.config.compressor,
-            filters=self.config.filter,
-            serializer=self.config.serializer,
-        )
-        arr_0[:] = data
+        with zarr.storage.LocalStore(str(self.filename), read_only=False) as store:
+            root = zarr.open(store, mode="w", zarr_format=self.config.zarr_format)
+            # Ensure root is a Group and not an Array (for type checker)
+            if not isinstance(root, zarr.Group):
+                raise TypeError("Expected root to be a zarr.hierarchy.Group")
+            arr_0 = root.create_array(
+                "arr_0",
+                shape=data.shape,
+                chunks=self.config.chunk_size,
+                dtype=self.config.dtype,
+                compressors=self.config.compressor,
+                filters=self.config.filter,
+                serializer=self.config.serializer,
+            )
+            arr_0[:] = data
 
 
 class NetCDFWriter(BaseWriter[NetCDFConfig]):
     def write(self, data: NDArrayLike) -> None:
         with nc.Dataset(self.filename, "w", format="NETCDF4") as ds:
-            print("nc.__has_szip_support__", nc.__has_szip_support__)
-            print("nc.__has_blosc_support__", nc.__has_blosc_support__)
-            print("ds.has_szip_filter()", ds.has_szip_filter())
             dimension_names = tuple(f"dim{i}" for i in range(data.ndim))
             for dim, size in zip(dimension_names, data.shape):
                 ds.createDimension(dim, size)
@@ -109,8 +108,6 @@ class NetCDFWriter(BaseWriter[NetCDFConfig]):
             var.scale_factor = self.config.scale_factor
             var.add_offset = self.config.add_offset
             var[:] = data
-
-            print("ds.variables['dataset'].filters()", ds.variables["dataset"].filters())
 
 
 class OMWriter(BaseWriter[OMConfig]):

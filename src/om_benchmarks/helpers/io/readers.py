@@ -168,7 +168,7 @@ class ZarrsCodecsZarrReader(ZarrReader):
                     # "validate_checksums": True,
                     # "store_empty_chunks": False,
                     # "chunk_concurrent_minimum": 4,
-                    # "chunk_concurrent_maximum": None,
+                    # "chunk_concurrent_maximum": 1,
                     "batch_size": 1,
                 }
             }
