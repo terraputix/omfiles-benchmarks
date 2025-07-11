@@ -192,7 +192,7 @@ def main(
     rust_binary: str = typer.Option("rust/target/release/om-rust-bm", help="Path to Rust binary"),
     swift_binary: str = typer.Option("Swift/.build/release/om-swift-bm", help="Path to Swift binary"),
     typescript_script: str = typer.Option("typescript/om-typescript-bm.js", help="Path to TypeScript script"),
-    iterations: int = typer.Option(2, help="Number of iterations for each benchmark"),
+    iterations: int = typer.Option(20, help="Number of iterations for each benchmark"),
     file: List[str] = typer.Argument(..., help="OM files to benchmark"),
 ):
     """
