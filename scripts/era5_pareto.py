@@ -1,3 +1,4 @@
+import gc
 import os
 import random
 import statistics
@@ -11,7 +12,6 @@ import polars as pl
 import typer
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
-from om_benchmarks.helpers.bm_writer import bm_write_format
 from om_benchmarks.helpers.era5 import read_era5_data
 from om_benchmarks.helpers.formats import AvailableFormats
 from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig, HDF5Config, NetCDFConfig, OMConfig, ZarrConfig
@@ -29,12 +29,6 @@ from om_benchmarks.helpers.stats import _clear_cache, measure_memory, measure_ti
 
 app = AsyncTyper()
 
-# read_indices = [
-#     (100, 200, slice(0, 20, 1)),
-#     (slice(100, 104), slice(200, 204), slice(0, 20, 1)),
-#     (slice(100, 104), slice(200, 204), ...),
-# ]
-
 data_shape = (744, 721, 1440)
 
 read_ranges: list[tuple[int, int, int]] = [
@@ -50,6 +44,8 @@ chunk_sizes = {
     "small": (5, 5, 1440),
     "medium": (10, 10, 1440),
     "large": (20, 20, 1440),
+    # "xtra_large": (40, 40, 1440),
+    # "xtra_xtra_large": (100, 100, 1440),
 }
 
 READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
@@ -75,7 +71,7 @@ READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
         HDF5Config(
             chunk_size=chunk_sizes["small"],
             compression="szip",
-            compression_opts=("nn", 32),
+            compression_opts=("nn", 8),
             explicitly_convert_to_int=True,
         ),
     ),
@@ -101,7 +97,6 @@ READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
             compression=hdf5plugin.SZ(absolute=0.01),
         ),
     ),
-    # (AvailableFormats.HDF5Hidefix, HDF5Config(chunk_size=chunk_sizes["small"])),
     (
         AvailableFormats.Zarr,
         ZarrConfig(
@@ -140,13 +135,13 @@ READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
             compressor=numcodecs.Blosc(),
         ),
     ),
-    (
-        AvailableFormats.ZarrPythonViaZarrsCodecs,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(),
-        ),
-    ),
+    # (
+    #     AvailableFormats.ZarrPythonViaZarrsCodecs,
+    #     ZarrConfig(
+    #         chunk_size=chunk_sizes["small"],
+    #         compressor=numcodecs.Blosc(),
+    #     ),
+    # ),
     (
         AvailableFormats.Zarr,
         ZarrConfig(
@@ -161,13 +156,13 @@ READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
             compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
         ),
     ),
-    (
-        AvailableFormats.ZarrPythonViaZarrsCodecs,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
+    # (
+    #     AvailableFormats.ZarrPythonViaZarrsCodecs,
+    #     ZarrConfig(
+    #         chunk_size=chunk_sizes["small"],
+    #         compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
+    #     ),
+    # ),
     (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression="zlib", compression_level=3)),
     (
         AvailableFormats.OM,
@@ -190,11 +185,13 @@ async def main(
     read_iterations: int = typer.Option(2, help="Number of times to repeat each benchmark for more reliable results."),
     write_iterations: int = typer.Option(1, help="Number of times to repeat each benchmark for more reliable results."),
     clear_cache: bool = typer.Option(True, help="Clear the cache during single benchmark iterations."),
+    mode: str = typer.Option("time", help="Benchmark mode."),
     plot_only: bool = typer.Option(False, help="Only plot the results without running the benchmarks."),
-    skip_measure_memory: bool = typer.Option(True, help="Measure memory usage during benchmarking."),
 ):
     # Gather results
     results_dir, plots_dir = get_script_dirs(__file__)
+
+    measure_func = measure_memory if mode == "memory" else measure_time
 
     # Generate read_indices: for each read_range, generate read_iterations tuples of slices
     read_indices: dict[tuple[int, int, int], list[tuple[slice, slice, slice]]] = {}
@@ -210,7 +207,7 @@ async def main(
             slices.append(sliced)
         read_indices[read_range] = slices
 
-    for _name, chunk_size in chunk_sizes.items():
+    for _, chunk_size in chunk_sizes.items():
         read_results: list[BenchmarkRecord] = []
         write_results: list[BenchmarkRecord] = []
         if not plot_only:
@@ -224,15 +221,43 @@ async def main(
                     data = read_era5_data(target_download)
                     assert data.shape == data_shape, f"Expected shape {data_shape}, got {data.shape}"
 
+                    writer = format.writer_class(file_path.__str__(), config_for_this_run)
+
+                    @measure_func
+                    def measured_write():
+                        writer.write(data)
+
+                    # Run the write benchmark multiple times
+                    write_times: List[float] = []
+                    write_cpu_times: List[float] = []
+                    write_memory_usages: List[float] = []
+
+                    for _ in range(write_iterations):
+                        result = await measured_write()
+                        if mode == "memory":
+                            write_memory_usages.append(result.memory_total_allocations)  # type: ignore
+                        else:
+                            write_times.append(result.elapsed)  # type: ignore
+                            write_cpu_times.append(result.cpu_elapsed)  # type: ignore
+
+                    write_stats = BenchmarkStats(
+                        mean=statistics.mean(write_times) if write_times else 0.0,
+                        std=statistics.stdev(write_times) if len(write_times) > 1 else 0.0,
+                        min=min(write_times) if write_times else 0.0,
+                        max=max(write_times) if write_times else 0.0,
+                        cpu_mean=statistics.mean(write_cpu_times) if write_cpu_times else 0.0,
+                        cpu_std=statistics.stdev(write_cpu_times) if len(write_cpu_times) > 1 else 0.0,
+                        memory_usage=statistics.mean(write_memory_usages) if len(write_memory_usages) > 0 else 0.0,
+                        file_size=writer.get_file_size(),
+                    )
+
                     metadata = RunMetadata(
                         array_shape=data.shape,
                         read_index=None,
                         format_config=config_for_this_run,
                         iterations=write_iterations,
                     )
-                    write_result = await bm_write_format(
-                        metadata, format, config_for_this_run, file_path.__str__(), data
-                    )
+                    write_result = BenchmarkRecord.from_benchmark_stats(write_stats, format, "write", metadata)
                     write_results.append(write_result)
 
                 if clear_cache:
@@ -243,29 +268,23 @@ async def main(
                     cpu_times: List[float] = []
                     memory_usages: List[float] = []
                     file_size: int = 0
-                    for read_index in indices:
-                        print(f"Reading file {file_path.__str__()}")
+                    for i, read_index in enumerate(indices):
+                        print(f"Reading file {file_path.__str__()} with format {format.name}")
                         reader_type = format.reader_class
                         reader = await reader_type.create(file_path.__str__())
 
-                        @measure_time
-                        async def time_read():
-                            return await reader.read(read_index)
-
-                        @measure_memory
-                        async def memory_read():
+                        @measure_func
+                        async def measured_read():
                             return await reader.read(read_index)
 
                         try:
-                            result = await time_read()
-                            times.append(result.elapsed)
-                            cpu_times.append(result.cpu_elapsed)
-
-                            if skip_measure_memory:
-                                memory_usages.append(0)
+                            if mode == "memory":
+                                result = await measured_read()
+                                memory_usages.append(result.memory_total_allocations)  # type: ignore
                             else:
-                                result = await memory_read()
-                                memory_usages.append(result.memory_total_allocations)
+                                result = await measured_read()
+                                times.append(result.elapsed)  # type: ignore
+                                cpu_times.append(result.cpu_elapsed)  # type: ignore
 
                             file_size = reader.get_file_size()
 
@@ -281,9 +300,9 @@ async def main(
                         max=max(times),
                         cpu_mean=statistics.mean(cpu_times),
                         cpu_std=statistics.stdev(cpu_times) if len(cpu_times) > 1 else 0.0,
-                        memory_usage=statistics.mean(memory_usages),
+                        memory_usage=statistics.mean(memory_usages) if len(memory_usages) > 0 else 0.0,
+                        file_size=file_size,
                     )
-                    read_stats.file_size = file_size
 
                     metadata = RunMetadata(
                         array_shape=data_shape,
@@ -293,6 +312,7 @@ async def main(
                     )
                     result = BenchmarkRecord.from_benchmark_stats(read_stats, format, "read", metadata)
                     read_results.append(result)
+                    gc.collect()
 
         results_df = BenchmarkResultsDF(
             results_dir,
@@ -308,32 +328,38 @@ async def main(
 
         results_df.print_summary()
 
-        # Create visualizations
-        create_and_save_perf_chart(
-            results_df.df.filter(pl.col("operation") == "read"),
-            plots_dir,
-            file_name=f"performance_chart_{chunk_size}.png",
-        )
-        create_and_save_memory_usage_chart(
-            results_df.df.filter(pl.col("operation") == "read"),
-            plots_dir,
-            file_name=f"memory_usage_chart_{chunk_size}.png",
-        )
-        create_scatter_size_vs_time(
-            results_df.df.filter(pl.col("operation") == "read"),
-            plots_dir,
-            file_name=f"scatter_size_vs_time_{chunk_size}.png",
-        )
+        # Create visualizations based on mode
+        if mode == "time":
+            create_and_save_perf_chart(
+                results_df.df.filter(pl.col("operation") == "read"),
+                plots_dir,
+                file_name=f"performance_chart_{chunk_size}_{mode}.png",
+            )
+            create_scatter_size_vs_time(
+                results_df.df.filter(pl.col("operation") == "read"),
+                plots_dir,
+                file_name=f"scatter_size_vs_time_{chunk_size}_{mode}.png",
+            )
+        elif mode == "memory":
+            create_and_save_memory_usage_chart(
+                results_df.df.filter(pl.col("operation") == "read"),
+                plots_dir,
+                file_name=f"memory_usage_chart_{chunk_size}_{mode}.png",
+            )
+
+        # Common visualizations
         plot_radviz_results(
             results_df.df.filter(pl.col("operation") == "read"),
             plots_dir,
-            file_name=f"radviz_results_{chunk_size}.png",
+            file_name=f"radviz_results_{chunk_size}_{mode}.png",
         )
         create_and_save_compression_ratio_chart(
             results_df.df.filter(pl.col("operation") == "read"),
             plots_dir,
-            file_name=f"compression_ratio_chart_{chunk_size}.png",
+            file_name=f"compression_ratio_chart_{chunk_size}_{mode}.png",
         )
+
+        gc.collect()
 
 
 if __name__ == "__main__":
