@@ -328,11 +328,11 @@ async def main(
                                 reader.close()
 
                         read_stats = BenchmarkStats(
-                            mean=statistics.mean(times),
+                            mean=statistics.mean(times) if times else 0.0,
                             std=statistics.stdev(times) if len(times) > 1 else 0.0,
-                            min=min(times),
-                            max=max(times),
-                            cpu_mean=statistics.mean(cpu_times),
+                            min=min(times) if times else 0.0,
+                            max=max(times) if times else 0.0,
+                            cpu_mean=statistics.mean(cpu_times) if times else 0.0,
                             cpu_std=statistics.stdev(cpu_times) if len(cpu_times) > 1 else 0.0,
                             memory_usage=statistics.mean(memory_usages) if len(memory_usages) > 0 else 0.0,
                             file_size=file_size,
