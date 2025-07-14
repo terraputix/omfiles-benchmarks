@@ -13,7 +13,7 @@ import polars as pl
 import typer
 
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
-from om_benchmarks.helpers.era5 import read_era5_data
+from om_benchmarks.helpers.era5 import read_era5_data_to_temporal
 from om_benchmarks.helpers.formats import AvailableFormats
 from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig, HDF5Config, NetCDFConfig, OMConfig, ZarrConfig
 from om_benchmarks.helpers.modes import MetricMode, OpMode
@@ -31,23 +31,23 @@ from om_benchmarks.helpers.stats import _clear_cache, measure_memory, measure_ti
 
 app = AsyncTyper()
 
-data_shape = (744, 721, 1440)
+data_shape = (721, 1440, 744)
 
 read_ranges: list[tuple[int, int, int]] = [
     (1, 1, 20),
     (5, 5, 200),
-    (1, 1, 1440),
-    (5, 5, 1440),
-    (20, 20, 1440),
-    (744, 721, 1),
+    (1, 1, 744),
+    (5, 5, 744),
+    (20, 20, 744),
+    (721, 1440, 1),
 ]
 
 chunk_sizes = {
-    "small": (5, 5, 1440),
-    "medium": (10, 10, 1440),
-    "large": (20, 20, 1440),
-    # "xtra_large": (40, 40, 1440),
-    # "xtra_xtra_large": (100, 100, 1440),
+    "small": (5, 5, 744),
+    "medium": (10, 10, 744),
+    "large": (20, 20, 744),
+    # "xtra_large": (40, 40, 744),
+    # "xtra_xtra_large": (100, 100, 744),
 }
 
 READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
@@ -243,7 +243,7 @@ async def main(
                             os.remove(file_path)
 
                     target_download = "downloaded_data.nc"
-                    data = read_era5_data(target_download)
+                    data = read_era5_data_to_temporal(target_download)
 
                     assert data.shape == data_shape, f"Expected shape {data_shape}, got {data.shape}"
 
