@@ -169,4 +169,4 @@ class OMConfig(FormatWriterConfig):
     def compression_pretty_name(self) -> str:
         if self.compression is None:
             return "None"
-        return f"{self.compression}"
+        return f"{self.compression} scale {self.scale_factor} offset {self.add_offset}"

@@ -14,6 +14,7 @@ from matplotlib import rcParams
 from matplotlib.ticker import FuncFormatter
 
 from om_benchmarks.helpers.formats import AvailableFormats
+from om_benchmarks.helpers.modes import MetricMode, OpMode, format_bytes, format_time
 from om_benchmarks.helpers.parse_tuple import pretty_read_index
 
 # plotting backend does not need to be interactive
@@ -52,25 +53,6 @@ rcParams.update(
         "figure.subplot.hspace": 0.35,
     }
 )
-
-
-def format_bytes(x: float, pos: int) -> str:
-    """Format bytes into human readable format"""
-    for unit in ["B", "KB", "MB", "GB"]:
-        if x < 1024.0:
-            return f"{x:.1f}\\,{unit}"
-        x /= 1024.0
-    return f"{x:.1f}\\,TB"
-
-
-def format_time(x: float, pos: int) -> str:
-    """Format time into human readable format"""
-    if x < 1:
-        return f"{x * 1000:.1f}\\,ms"
-    elif x < 60:
-        return f"{x:.2f}\\,s"
-    else:
-        return f"{x / 60:.1f}\\,min"
 
 
 def normalize_compression(comp: Optional[str]) -> str:
@@ -277,27 +259,36 @@ def create_and_save_compression_ratio_chart(
     plt.close()
 
 
-def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_size_vs_time.png") -> None:
+def create_scatter_size_vs_mode(
+    df: pl.DataFrame,
+    operation: OpMode,
+    mode: MetricMode,
+    save_dir,
+    file_name="scatter_size_vs_mode.png",
+) -> None:
     output_path = save_dir / file_name
 
-    # Only consider 'read' operation
-    df = df.filter(pl.col("operation") == "read")
     if df.height == 0:
-        raise ValueError("No read operation data found.")
+        raise ValueError("No data in dataframe.")
 
     read_indices = df["read_index"].unique().sort().to_list()
     chunk_shapes = df["chunk_shape"].unique().to_list()
 
     assert len(chunk_shapes) == 1, f"Expected 1 chunk shape, got {len(chunk_shapes)}"
-    assert len(read_indices) % 2 == 0, f"Expected even number of read indices, got {len(read_indices)}"
 
-    n_rows: int = int(len(read_indices) / 2)
-    n_cols = 2
+    if len(read_indices) == 1:
+        n_rows = 1
+        n_cols = 1
+    elif len(read_indices) % 2 == 0:
+        n_rows: int = int(len(read_indices) / 2)
+        n_cols = 2
+    else:
+        raise ValueError("Expected an even number of read indices.")
 
     fig_width = max(10, 5 * n_cols)
     fig_height = max(8, 4 * n_rows)
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(fig_width, fig_height), squeeze=False)
-    plt.subplots_adjust(right=0.78)
+    plt.subplots_adjust(right=0.76)
 
     # Color by compression, marker by format
     color_map = get_color_palette([normalize_compression(c) for c in df["compression"].to_list()])
@@ -353,7 +344,7 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
 
                 ax.scatter(
                     row_dict["compression_ratio"],
-                    row_dict["mean_time"],
+                    row_dict[mode.scatter_size_target_column],
                     color=color,
                     marker=marker,
                     s=80,
@@ -362,17 +353,17 @@ def create_scatter_size_vs_time(df: pl.DataFrame, save_dir, file_name="scatter_s
                 )
 
             ax.set_xlabel("Compression Ratio")
-            ax.set_ylabel("Mean Read Time")
-            # ax.set_xscale("log", base=2)
-            # ax.set_yscale("log")
-            ax.yaxis.set_major_formatter(FuncFormatter(format_time))
-            # ax.yaxis.set_minor_formatter(FuncFormatter(format_time))
+            ax.set_ylabel(mode.y_label)
+            ax.set_yscale("log", base=mode.log_base)
+            ax.yaxis.set_major_formatter(FuncFormatter(mode.target_values_formatter))
+            # ax.yaxis.set_minor_formatter(FuncFormatter(mode.target_values_formatter))
             ax.minorticks_on()
             # ax.grid(which="minor", alpha=0.2)
-            ax.set_title(f"Random read of size {str(read_index)}")
+            if operation == OpMode.READ:
+                ax.set_title(f"Random read of size {str(read_index)}")
 
     fig.legend(handles=handles, loc="center right", frameon=True)
-    title = "File Size vs. Mean Read Time"
+    title = f"File Size vs. {mode.vs_title}"
     subtitle = "File Chunk Shape " + str(chunk_shape)
 
     fig.suptitle(rf"\Large {title}" + "\n" + rf"\normalsize {subtitle}")

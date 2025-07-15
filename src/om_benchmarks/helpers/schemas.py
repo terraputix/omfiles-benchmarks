@@ -6,6 +6,7 @@ import polars as pl
 
 from om_benchmarks.helpers.formats import AvailableFormats
 from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig
+from om_benchmarks.helpers.modes import OpMode
 
 BENCHMARK_SCHEMA = pl.Schema(
     {
@@ -69,14 +70,14 @@ class BenchmarkRecord:
         cls,
         stats: BenchmarkStats,
         format: AvailableFormats,
-        operation: Literal["read", "write"],
+        operation: OpMode,
         run_metadata: "RunMetadata",
     ) -> "BenchmarkRecord":
         """Convert BenchmarkStats to BenchmarkRecord"""
         return cls(
             run_id=run_metadata.run_id,
             timestamp=run_metadata.timestamp,
-            operation=operation,
+            operation=operation.value,
             format=format.name,
             array_shape=run_metadata.array_shape_str,
             compression=run_metadata.compression_identifier,
