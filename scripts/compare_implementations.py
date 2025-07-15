@@ -12,6 +12,7 @@ import typer
 
 from om_benchmarks.helpers.plotting import create_and_save_perf_chart
 from om_benchmarks.helpers.script_utils import get_script_dirs
+from om_benchmarks.helpers.stats import _clear_cache
 
 # Type definitions
 ReadSelection = Union[Tuple[int, int, int], None]  # (t, y, x) dimensions or None for full file
@@ -135,6 +136,8 @@ def run_benchmarks(
                     print(f"Warning: No implementation for language {language}")
                     continue
 
+                _clear_cache()
+
                 print(
                     f"Benchmarking {language} implementation reading {file_path} "
                     + f"with selection {read_selection or 'full file'}"
@@ -166,7 +169,7 @@ def save_results(results: List[BenchmarkResult], results_dir: Path) -> pl.DataFr
             "format": "OM",
             "compression": r.language,
             "operation": "read",
-            "chunk_shape": "(5,5,1440)",
+            "chunk_shape": "(5,5,744)",
             "file": filename,
             "file_path": r.file_path,
             "file_size": r.file_size,
@@ -203,7 +206,7 @@ def main(
 
     # Set up read selections
     read_selections: List[ReadSelection] = [
-        (744, 721, 1),  # Worst case read scenario
+        (721, 1440, 1),  # Worst case read scenario
     ]
 
     # Determine languages to benchmark
