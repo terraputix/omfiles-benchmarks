@@ -51,6 +51,12 @@ chunk_sizes = {
 }
 
 READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
+    # netcdf baseline: no compression
+    (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression=None)),
+    # hdf5 baseline: no compression
+    (AvailableFormats.HDF5, HDF5Config(chunk_size=chunk_sizes["small"])),
+    # zarr baseline: no compression
+    (AvailableFormats.Zarr, ZarrConfig(chunk_size=chunk_sizes["small"], compressor=None)),
     (
         AvailableFormats.NetCDF,
         NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", significant_digits=2),
@@ -77,7 +83,6 @@ READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
             explicitly_convert_to_int=True,
         ),
     ),
-    (AvailableFormats.HDF5, HDF5Config(chunk_size=chunk_sizes["small"])),
     (
         AvailableFormats.HDF5,
         HDF5Config(
