@@ -62,6 +62,50 @@ class BaseReader(ABC):
             return 0
 
 
+class BaselineReader(BaseReader):
+    """
+    Baseline reader for numpy arrays serialized via numpy's .npy format using mmap.
+    """
+
+    _mmap_array: Optional[np.memmap] = None
+    _shape: Optional[tuple[int, ...]] = None
+    _dtype: Optional[np.dtype] = None
+
+    @classmethod
+    async def create(cls, filename: str):
+        self = await super().create(filename)
+        # Use numpy memmap to open the file in read-only mode
+        self._mmap_array = cast(np.memmap, np.lib.format.open_memmap(self.filename, mode="r"))
+        self._shape = self._mmap_array.shape
+        self._dtype = self._mmap_array.dtype
+        return self
+
+    async def read(self, index: BasicSelection) -> np.ndarray:
+        if self._mmap_array is None:
+            raise RuntimeError("File not opened")
+
+        selected = self._mmap_array[index]
+        # self._mmap_array._mmap.madvise(mmap.MADV_DONTNEED)  # type: ignore
+        selected = np.copy(selected)
+        assert selected.base is None, "Array is a view, but should be a copy"
+        return selected
+
+    def close(self) -> None:
+        # np.memmap does not require explicit close, but we can delete the reference
+        self._mmap_array = None
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        if self._shape is None:
+            raise RuntimeError("Shape not available")
+        return self._shape
+
+    @property
+    def chunk_shape(self) -> Optional[tuple[int, ...]]:
+        # No chunking for baseline
+        return None
+
+
 class HDF5Reader(BaseReader):
     h5_reader: h5py.Dataset
 

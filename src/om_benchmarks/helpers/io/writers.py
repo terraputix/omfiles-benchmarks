@@ -1,4 +1,4 @@
-"""Implements a unified interface for writing data to various formats."""
+"""Implements a unified interface for writing data to various formats, including a baseline mmap writer."""
 
 import os
 from abc import ABC, abstractmethod
@@ -13,7 +13,14 @@ import zarr
 import zarr.storage
 from zarr.core.buffer import NDArrayLike
 
-from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig, HDF5Config, NetCDFConfig, OMConfig, ZarrConfig
+from om_benchmarks.helpers.io.writer_configs import (
+    BaselineConfig,
+    FormatWriterConfig,
+    HDF5Config,
+    NetCDFConfig,
+    OMConfig,
+    ZarrConfig,
+)
 
 ConfigType = TypeVar("ConfigType", bound=FormatWriterConfig)
 
@@ -47,6 +54,20 @@ class BaseWriter(ABC, Generic[ConfigType]):
             return path.stat().st_size
         else:
             return 0
+
+
+class BaselineWriter(BaseWriter[BaselineConfig]):
+    """
+    Baseline writer that serializes a numpy array to disk using numpy's memmap
+    """
+
+    def write(self, data: NDArrayLike) -> None:
+        assert data.dtype == np.float32, f"Expected float32, got {data.dtype}"
+        # Write data via memmap
+        mm = np.lib.format.open_memmap(self.filename, dtype=data.dtype, mode="w+", shape=data.shape)
+        mm[:] = data[:]
+        mm.flush()
+        del mm
 
 
 class HDF5Writer(BaseWriter[HDF5Config]):

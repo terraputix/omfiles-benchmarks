@@ -15,7 +15,14 @@ import typer
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
 from om_benchmarks.helpers.era5 import read_era5_data_to_temporal
 from om_benchmarks.helpers.formats import AvailableFormats
-from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig, HDF5Config, NetCDFConfig, OMConfig, ZarrConfig
+from om_benchmarks.helpers.io.writer_configs import (
+    BaselineConfig,
+    FormatWriterConfig,
+    HDF5Config,
+    NetCDFConfig,
+    OMConfig,
+    ZarrConfig,
+)
 from om_benchmarks.helpers.modes import MetricMode, OpMode
 from om_benchmarks.helpers.plotting import (
     create_and_save_compression_ratio_chart,
@@ -51,6 +58,8 @@ chunk_sizes = {
 }
 
 READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
+    # numpy memmap as a baseline
+    (AvailableFormats.Baseline, BaselineConfig(chunk_size=chunk_sizes["small"])),
     # netcdf baseline: no compression
     (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression=None)),
     # hdf5 baseline: no compression

@@ -170,3 +170,18 @@ class OMConfig(FormatWriterConfig):
         if self.compression is None:
             return "None"
         return f"{self.compression} scale {self.scale_factor} offset {self.add_offset}"
+
+
+@dataclass
+class BaselineConfig(FormatWriterConfig):
+    """Configuration for Baseline mmap numpy writer (raw .npy file)."""
+
+    dtype: str = "f4"
+
+    @property
+    def compression_identifier(self) -> str:
+        return f"baseline_{self.dtype}"
+
+    @property
+    def compression_pretty_name(self) -> str:
+        return f"Baseline mmap ({self.dtype})"
