@@ -32,7 +32,7 @@ from om_benchmarks.helpers.plotting import (
     plot_radviz_results,
 )
 from om_benchmarks.helpers.results import BenchmarkResultsDF
-from om_benchmarks.helpers.schemas import BenchmarkRecord, BenchmarkStats, RunMetadata
+from om_benchmarks.helpers.schemas import BenchmarkRecord, BenchmarkStats
 from om_benchmarks.helpers.script_utils import get_era5_path_for_config, get_script_dirs
 from om_benchmarks.helpers.stats import _clear_cache, measure_memory, measure_time
 
@@ -51,8 +51,8 @@ read_ranges: list[tuple[int, int, int]] = [
 
 chunk_sizes = {
     "small": (5, 5, 744),
-    "medium": (10, 10, 744),
-    "large": (20, 20, 744),
+    # "medium": (10, 10, 744),
+    # "large": (20, 20, 744),
     # "xtra_large": (40, 40, 744),
     # "xtra_xtra_large": (100, 100, 744),
 }
@@ -66,129 +66,133 @@ READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
     (AvailableFormats.HDF5, HDF5Config(chunk_size=chunk_sizes["small"])),
     # zarr baseline: no compression
     (AvailableFormats.Zarr, ZarrConfig(chunk_size=chunk_sizes["small"], compressor=None)),
-    (
-        AvailableFormats.NetCDF,
-        NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", significant_digits=2),
-    ),
-    (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", scale_factor=1.0)),
-    (
-        AvailableFormats.HDF5,
-        # https://hdfgroup.github.io/hdf5/develop/group___s_z_i_p.html#ga688fde8106225adf9e6ccd2a168dec74
-        # https://hdfgroup.github.io/hdf5/develop/_h5_d__u_g.html#title6
-        # 1st 'nn' stands for: H5_SZIP_NN_OPTION_MASK
-        # 2nd 32 stands for: 32 pixels per block
-        HDF5Config(chunk_size=chunk_sizes["small"], compression="szip", compression_opts=("nn", 32), scale_offset=2),
-    ),
-    (
-        AvailableFormats.HDF5,
-        # https://hdfgroup.github.io/hdf5/develop/group___s_z_i_p.html#ga688fde8106225adf9e6ccd2a168dec74
-        # https://hdfgroup.github.io/hdf5/develop/_h5_d__u_g.html#title6
-        # 1st 'nn' stands for: H5_SZIP_NN_OPTION_MASK
-        # 2nd 32 stands for: 32 pixels per block
-        HDF5Config(
-            chunk_size=chunk_sizes["small"],
-            compression="szip",
-            compression_opts=("nn", 8),
-            explicitly_convert_to_int=True,
-        ),
-    ),
-    (
-        AvailableFormats.HDF5,
-        HDF5Config(
-            chunk_size=chunk_sizes["small"],
-            compression=hdf5plugin.Blosc(cname="zstd", clevel=9, shuffle=hdf5plugin.Blosc.SHUFFLE),
-        ),
-    ),
-    (
-        AvailableFormats.HDF5,
-        HDF5Config(
-            chunk_size=chunk_sizes["small"],
-            compression=hdf5plugin.Blosc(cname="lz4", clevel=4, shuffle=hdf5plugin.Blosc.SHUFFLE),
-        ),
-    ),
-    (
-        AvailableFormats.HDF5,
-        HDF5Config(
-            chunk_size=chunk_sizes["small"],
-            compression=hdf5plugin.SZ(absolute=0.01),
-        ),
-    ),
-    (
-        AvailableFormats.Zarr,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="zstd", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
-    (
-        AvailableFormats.Zarr,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(),
-        ),
-    ),
-    (
-        AvailableFormats.Zarr,
-        ZarrConfig(
-            zarr_format=3,
-            chunk_size=chunk_sizes["small"],
-            serializer=numcodecs.zarr3.PCodec(level=8, mode_spec="auto"),
-            filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=100, dtype="f4", astype="i4"),
-        ),
-    ),
-    (
-        AvailableFormats.Zarr,
-        ZarrConfig(
-            zarr_format=3,
-            chunk_size=chunk_sizes["small"],
-            serializer=numcodecs.zarr3.PCodec(),
-        ),
-    ),
-    (
-        AvailableFormats.ZarrTensorStore,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(),
-        ),
-    ),
-    (
-        AvailableFormats.ZarrPythonViaZarrsCodecs,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(),
-        ),
-    ),
-    (
-        AvailableFormats.Zarr,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
-    (
-        AvailableFormats.ZarrTensorStore,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
-    (
-        AvailableFormats.ZarrPythonViaZarrsCodecs,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
-    (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression="zlib", compression_level=3)),
-    (
-        AvailableFormats.OM,
-        OMConfig(
-            chunk_size=chunk_sizes["small"],
-            compression="pfor_delta_2d",
-            scale_factor=100,
-            add_offset=0,
-        ),
-    ),
+    # (
+    #     AvailableFormats.NetCDF,
+    #     NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", significant_digits=1),
+    # ),
+    # (
+    #     AvailableFormats.NetCDF,
+    #     NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", significant_digits=2),
+    # ),
+    # (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", scale_factor=1.0)),
+    # (
+    #     AvailableFormats.HDF5,
+    #     # https://hdfgroup.github.io/hdf5/develop/group___s_z_i_p.html#ga688fde8106225adf9e6ccd2a168dec74
+    #     # https://hdfgroup.github.io/hdf5/develop/_h5_d__u_g.html#title6
+    #     # 1st 'nn' stands for: H5_SZIP_NN_OPTION_MASK
+    #     # 2nd 32 stands for: 32 pixels per block
+    #     HDF5Config(chunk_size=chunk_sizes["small"], compression="szip", compression_opts=("nn", 32), scale_offset=2),
+    # ),
+    # (
+    #     AvailableFormats.HDF5,
+    #     # https://hdfgroup.github.io/hdf5/develop/group___s_z_i_p.html#ga688fde8106225adf9e6ccd2a168dec74
+    #     # https://hdfgroup.github.io/hdf5/develop/_h5_d__u_g.html#title6
+    #     # 1st 'nn' stands for: H5_SZIP_NN_OPTION_MASK
+    #     # 2nd 32 stands for: 32 pixels per block
+    #     HDF5Config(
+    #         chunk_size=chunk_sizes["small"],
+    #         compression="szip",
+    #         compression_opts=("nn", 8),
+    #         explicitly_convert_to_int=True,
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.HDF5,
+    #     HDF5Config(
+    #         chunk_size=chunk_sizes["small"],
+    #         compression=hdf5plugin.Blosc(cname="zstd", clevel=9, shuffle=hdf5plugin.Blosc.SHUFFLE),
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.HDF5,
+    #     HDF5Config(
+    #         chunk_size=chunk_sizes["small"],
+    #         compression=hdf5plugin.Blosc(cname="lz4", clevel=4, shuffle=hdf5plugin.Blosc.SHUFFLE),
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.HDF5,
+    #     HDF5Config(
+    #         chunk_size=chunk_sizes["small"],
+    #         compression=hdf5plugin.SZ(absolute=0.01),
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.Zarr,
+    #     ZarrConfig(
+    #         chunk_size=chunk_sizes["small"],
+    #         compressor=numcodecs.Blosc(cname="zstd", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE),
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.Zarr,
+    #     ZarrConfig(
+    #         chunk_size=chunk_sizes["small"],
+    #         compressor=numcodecs.Blosc(),
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.Zarr,
+    #     ZarrConfig(
+    #         zarr_format=3,
+    #         chunk_size=chunk_sizes["small"],
+    #         serializer=numcodecs.zarr3.PCodec(level=8, mode_spec="auto"),
+    #         filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=100, dtype="f4", astype="i4"),
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.Zarr,
+    #     ZarrConfig(
+    #         zarr_format=3,
+    #         chunk_size=chunk_sizes["small"],
+    #         serializer=numcodecs.zarr3.PCodec(),
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.ZarrTensorStore,
+    #     ZarrConfig(
+    #         chunk_size=chunk_sizes["small"],
+    #         compressor=numcodecs.Blosc(),
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.ZarrPythonViaZarrsCodecs,
+    #     ZarrConfig(
+    #         chunk_size=chunk_sizes["small"],
+    #         compressor=numcodecs.Blosc(),
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.Zarr,
+    #     ZarrConfig(
+    #         chunk_size=chunk_sizes["small"],
+    #         compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.ZarrTensorStore,
+    #     ZarrConfig(
+    #         chunk_size=chunk_sizes["small"],
+    #         compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
+    #     ),
+    # ),
+    # (
+    #     AvailableFormats.ZarrPythonViaZarrsCodecs,
+    #     ZarrConfig(
+    #         chunk_size=chunk_sizes["small"],
+    #         compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
+    #     ),
+    # ),
+    # (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression="zlib", compression_level=3)),
+    # (
+    #     AvailableFormats.OM,
+    #     OMConfig(
+    #         chunk_size=chunk_sizes["small"],
+    #         compression="pfor_delta_2d",
+    #         scale_factor=100,
+    #         add_offset=0,
+    #     ),
+    # ),
     (
         AvailableFormats.OM,
         OMConfig(
@@ -292,14 +296,15 @@ async def main(
                         memory_usage=statistics.mean(write_memory_usages) if len(write_memory_usages) > 0 else 0.0,
                         file_size=writer.get_file_size(),
                     )
-
-                    metadata = RunMetadata(
+                    write_result = BenchmarkRecord.from_benchmark_stats(
+                        stats=write_stats,
+                        format=format,
+                        writer_config=config_for_this_run,
+                        operation=op_mode,
                         array_shape=data.shape,
                         read_index=None,
-                        format_config=config_for_this_run,
                         iterations=iterations,
                     )
-                    write_result = BenchmarkRecord.from_benchmark_stats(write_stats, format, op_mode, metadata)
                     bm_results.append(write_result)
 
                 elif op_mode == OpMode.READ:
@@ -352,13 +357,15 @@ async def main(
                             file_size=file_size,
                         )
 
-                        metadata = RunMetadata(
+                        result = BenchmarkRecord.from_benchmark_stats(
+                            stats=read_stats,
+                            format=format,
+                            writer_config=config_for_this_run,
+                            operation=op_mode,
                             array_shape=data_shape,
                             read_index=read_length,
-                            format_config=config_for_this_run,
                             iterations=iterations,
                         )
-                        result = BenchmarkRecord.from_benchmark_stats(read_stats, format, op_mode, metadata)
                         bm_results.append(result)
                         gc.collect()
 
