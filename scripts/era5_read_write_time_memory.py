@@ -1,6 +1,5 @@
 import gc
 import os
-import random
 import shutil
 import statistics
 from dataclasses import replace
@@ -27,12 +26,14 @@ from om_benchmarks.io.writer_configs import (
 from om_benchmarks.modes import MetricMode, OpMode
 from om_benchmarks.mse import MSECache, mean_squared_error
 from om_benchmarks.plotting import (
-    create_and_save_compression_ratio_chart,
+    create_and_save_compression_factor_chart,
     create_and_save_memory_usage_chart,
     create_and_save_perf_chart,
     create_scatter_size_vs_mode,
+    create_violin_plot,
     plot_radviz_results,
 )
+from om_benchmarks.read_indices import generate_read_indices
 from om_benchmarks.results import BenchmarkResultsDF
 from om_benchmarks.schemas import BenchmarkRecord, BenchmarkStats
 from om_benchmarks.script_utils import get_era5_path_for_config, get_script_dirs
@@ -224,19 +225,8 @@ async def main(
 
     measure_func = measure_memory if mode == MetricMode.MEMORY else measure_time
 
-    # Generate read_indices: for each read_range, generate read_iterations tuples of slices
-    read_indices: dict[tuple[int, int, int], list[tuple[slice, slice, slice]]] = {}
-    for read_range in read_ranges:
-        slices: list[tuple[slice, slice, slice]] = []
-        for _ in range(iterations):
-            # For each dimension, pick a random start so that start + length <= dim_size
-            starts = [random.randint(0, dim_size - req_len) for dim_size, req_len in zip(data_shape, read_range)]
-            s0 = slice(starts[0], starts[0] + read_range[0])
-            s1 = slice(starts[1], starts[1] + read_range[1])
-            s2 = slice(starts[2], starts[2] + read_range[2])
-            sliced: tuple[slice, slice, slice] = (s0, s1, s2)
-            slices.append(sliced)
-        read_indices[read_range] = slices
+    # Generate read_indices: for each read_range, generate `iterations` tuples of slices
+    read_indices = generate_read_indices(data_shape, iterations, read_ranges)
 
     for _, chunk_size in chunk_sizes.items():
         bm_results: list[BenchmarkRecord] = []
@@ -310,6 +300,7 @@ async def main(
                         cpu_std=statistics.stdev(write_cpu_times) if len(write_cpu_times) > 1 else 0.0,
                         memory_usage=statistics.mean(write_memory_usages) if len(write_memory_usages) > 0 else 0.0,
                         file_size=file_size,
+                        samples=write_times if mode == MetricMode.TIME else write_memory_usages,
                     )
                     write_result = BenchmarkRecord.from_benchmark_stats(
                         stats=write_stats,
@@ -370,6 +361,7 @@ async def main(
                             cpu_mean=statistics.mean(cpu_times) if times else 0.0,
                             cpu_std=statistics.stdev(cpu_times) if len(cpu_times) > 1 else 0.0,
                             memory_usage=statistics.mean(memory_usages) if len(memory_usages) > 0 else 0.0,
+                            samples=times if mode == MetricMode.TIME else memory_usages,
                             file_size=file_size,
                         )
 
@@ -388,8 +380,8 @@ async def main(
 
         results_df = BenchmarkResultsDF(
             results_dir,
-            all_runs_name="benchmark_results_all.csv",
-            current_run_name=f"benchmark_results_{chunk_size}_{op_mode.value}.csv",
+            all_runs_name="benchmark_results_all.parquet",
+            current_run_name=f"benchmark_results_{chunk_size}_{op_mode.value}.parquet",
         )
         if not plot_only:
             results_df.append(bm_results)
@@ -421,12 +413,19 @@ async def main(
             plots_dir,
             file_name=f"scatter_size_vs_{mode.value}_{chunk_size}_{op_mode.value}.png",
         )
+        create_violin_plot(
+            results_df.df.filter(pl.col("operation") == op_mode.value),
+            op_mode,
+            mode,
+            plots_dir,
+            file_name=f"violin_plot_{chunk_size}_{op_mode.value}_{mode.value}.png",
+        )
         plot_radviz_results(
             results_df.df.filter(pl.col("operation") == op_mode.value),
             plots_dir,
             file_name=f"radviz_results_{chunk_size}_{op_mode.value}_{mode.value}.png",
         )
-        create_and_save_compression_ratio_chart(
+        create_and_save_compression_factor_chart(
             results_df.df.filter(pl.col("operation") == op_mode.value),
             plots_dir,
             file_name=f"compression_ratio_chart_{chunk_size}_{op_mode.value}_{mode.value}.png",
