@@ -47,7 +47,7 @@ rcParams.update(
         "axes.facecolor": "white",
         "figure.facecolor": "white",
         "savefig.bbox": "tight",
-        "savefig.dpi": 400,
+        "savefig.dpi": 600,
         "savefig.facecolor": "white",  # optional, but recommended for consistency
         "figure.subplot.wspace": 0.35,
         "figure.subplot.hspace": 0.35,
@@ -200,14 +200,14 @@ def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str 
     for row_idx, (chunk_shape, read_index) in enumerate([(cs, ri) for cs in chunk_shapes for ri in read_indices]):
         for col_idx, operation in enumerate(operations):
             ax: matplotlib.axes.Axes = axes[row_idx, col_idx]
-            filtered_df = df.filter(pl.col("operation") == operation)
-            filtered_df = filtered_df.filter(pl.col("chunk_shape") == chunk_shape)
-            filtered_df = filtered_df.filter(pl.col("read_index") == read_index)
-            filtered_df = filtered_df.sort("mean_time", descending=True)
+            filtered_df = df.filter(
+                (pl.col("operation") == operation)
+                & (pl.col("chunk_shape") == chunk_shape)
+                & (pl.col("read_index") == read_index)
+            ).sort("mean_time", descending=True)
 
             labels, mean_times, bar_colors = [], [], []
-            for row in filtered_df.iter_rows():
-                row_dict = dict(zip(filtered_df.columns, row))
+            for row_dict in filtered_df.iter_rows(named=True):
                 label = _get_label(AvailableFormats(row_dict["format"]), row_dict.get("compression"))
                 labels.append(label)
                 mean_times.append(row_dict["mean_time"])
@@ -247,14 +247,14 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
     for row_idx, (chunk_shape, read_index) in enumerate([(cs, ri) for cs in chunk_shapes for ri in read_indices]):
         for col_idx, operation in enumerate(operations):
             ax: matplotlib.axes.Axes = axes[row_idx, col_idx]
-            filtered_df = df.filter(pl.col("operation") == operation)
-            filtered_df = filtered_df.filter(pl.col("chunk_shape") == chunk_shape)
-            filtered_df = filtered_df.filter(pl.col("read_index") == read_index)
-            filtered_df = filtered_df.sort("memory_usage_bytes", descending=True)
+            filtered_df = df.filter(
+                (pl.col("operation") == operation)
+                & (pl.col("chunk_shape") == chunk_shape)
+                & (pl.col("read_index") == read_index)
+            ).sort("memory_usage_bytes", descending=True)
 
             labels, memory_usages, bar_colors = [], [], []
-            for row in filtered_df.iter_rows():
-                row_dict = dict(zip(filtered_df.columns, row))
+            for row_dict in filtered_df.iter_rows(named=True):
                 label = _get_label(AvailableFormats(row_dict["format"]), row_dict.get("compression"))
                 labels.append(label)
                 memory_usages.append(row_dict["memory_usage_bytes"])
@@ -581,10 +581,9 @@ def plot_radviz_results(df: pl.DataFrame, save_dir: Path, file_name: str = "radv
 
     # Build label to format mapping
     format_to_label_map = {}
-    for row in df.select(["format", "compression"]).unique().iter_rows():
-        fmt_enum = AvailableFormats(row[0])
-        compression = row[1]
-        label = _get_label(fmt_enum, compression)
+    for row_dict in df.select(["format", "compression"]).unique().iter_rows(named=True):
+        fmt_enum = AvailableFormats(row_dict["format"])
+        label = _get_label(fmt_enum, row_dict["compression"])
         format_to_label_map[label] = fmt_enum
 
     # Add label column
