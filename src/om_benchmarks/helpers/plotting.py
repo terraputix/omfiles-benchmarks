@@ -1,6 +1,6 @@
 from functools import reduce
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple, cast
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import matplotlib.axes
 import matplotlib.figure
@@ -86,19 +86,18 @@ def get_color_palette(categories: Sequence[str]) -> dict[str, tuple[float, float
     return dict(zip(unique, palette))
 
 
-def get_subplot_grid(
-    df: pl.DataFrame,
-    operations: List[str],
-) -> Tuple[matplotlib.figure.Figure, np.ndarray, List[str], List[str]]:
-    chunk_shapes: list[str] = cast(list[str], df["chunk_shape"].unique().to_list())
-    read_indices: list[str] = cast(list[str], df["read_index"].unique().to_list())
-    n_rows = len(chunk_shapes) * len(read_indices)
-    n_cols = len(operations)
-    fig_width = max(8, 5 * n_cols)
-    fig_height = max(8, 4 * n_rows)
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(fig_width, fig_height), squeeze=False)
+def get_5_4_subplot_grid(n_rows: int, n_cols: int) -> Tuple[matplotlib.figure.Figure, np.ndarray]:
+    fig_width = 5 * n_cols
+    fig_height = 4 * n_rows
+    fig, axes = plt.subplots(
+        n_rows,
+        n_cols,
+        figsize=(fig_width, fig_height),
+        squeeze=False,
+        constrained_layout=True,
+    )
     plt.subplots_adjust(hspace=1.35)
-    return fig, axes, chunk_shapes, read_indices
+    return fig, axes
 
 
 def add_info_box(ax: matplotlib.axes.Axes, chunk_shape: Optional[str], read_index: Optional[str]) -> None:
@@ -143,9 +142,14 @@ def add_compression_ratio_column(df: pl.DataFrame) -> pl.DataFrame:
 def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str = "performance_chart.png") -> None:
     output_path = save_dir / file_name
 
-    operations = df["operation"].unique().to_list()
+    operations: list[str] = df["operation"].unique().to_list()
+    chunk_shapes: list[str] = df["chunk_shape"].unique().to_list()
+    read_indices: list[str] = df["read_index"].unique().to_list()
 
-    fig, axes, chunk_shapes, read_indices = get_subplot_grid(df, operations)
+    n_rows = len(chunk_shapes) * len(read_indices)
+    n_cols = len(operations)
+
+    fig, axes = get_5_4_subplot_grid(n_rows=n_rows, n_cols=n_cols)
     color_map = get_color_palette([normalize_compression(c) for c in df["compression"].to_list()])
 
     # For each subplot
@@ -176,7 +180,7 @@ def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str 
     title = "Performance Comparison by Format"
     subtitle = "Lower execution time indicates better performance"
 
-    fig.suptitle(rf"\Large {title}" + "\n" + rf"\normalsize {subtitle}", y=0.92)
+    fig.suptitle(rf"\Large {title}" + "\n" + rf"\normalsize {subtitle}")
     plt.savefig(output_path)
     plt.close()
 
@@ -185,7 +189,14 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
     output_path = save_dir / file_name
 
     operations = df["operation"].unique().to_list()
-    fig, axes, chunk_shapes, read_indices = get_subplot_grid(df, operations)
+    operations: list[str] = df["operation"].unique().to_list()
+    chunk_shapes: list[str] = df["chunk_shape"].unique().to_list()
+    read_indices: list[str] = df["read_index"].unique().to_list()
+
+    n_rows = len(chunk_shapes) * len(read_indices)
+    n_cols = len(operations)
+
+    fig, axes = get_5_4_subplot_grid(n_rows=n_rows, n_cols=n_cols)
 
     color_map = get_color_palette([normalize_compression(c) for c in df["compression"].to_list()])
 
@@ -247,7 +258,7 @@ def create_and_save_compression_ratio_chart(
     color_map = get_color_palette(labels)
     colors = [color_map[label] for label in labels]
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(8, 5))
     ax.bar(labels, compression_ratios, color=colors, edgecolor="white", linewidth=0.5)
 
     ax.set_xlabel("Format (Compression)")
