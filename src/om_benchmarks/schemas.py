@@ -1,11 +1,25 @@
 from dataclasses import dataclass
-from typing import Literal, Optional, Tuple
+from typing import List, Literal, Optional, Tuple
 
 import polars as pl
 
 from om_benchmarks.formats import AvailableFormats
 from om_benchmarks.io.writer_configs import FormatWriterConfig
 from om_benchmarks.modes import OpMode
+
+
+@dataclass
+class BenchmarkStats:
+    mean: float
+    std: float
+    min: float
+    max: float
+    cpu_mean: float
+    cpu_std: float
+    memory_usage: float
+    samples: List[float]
+    file_size: float = 0
+
 
 BENCHMARK_SCHEMA = pl.Schema(
     {
@@ -25,20 +39,9 @@ BENCHMARK_SCHEMA = pl.Schema(
         "cpu_std_time": pl.Float64,
         "memory_usage_bytes": pl.Float64,
         "file_size_bytes": pl.Int64,
+        "samples": pl.List(pl.Float64),
     }
 )
-
-
-@dataclass
-class BenchmarkStats:
-    mean: float
-    std: float
-    min: float
-    max: float
-    cpu_mean: float
-    cpu_std: float
-    memory_usage: float
-    file_size: float = 0
 
 
 @dataclass
@@ -61,6 +64,7 @@ class BenchmarkRecord:
     cpu_std_time: float
     memory_usage_bytes: float
     file_size_bytes: float
+    samples: List[float]
 
     @classmethod
     def from_benchmark_stats(
@@ -92,4 +96,5 @@ class BenchmarkRecord:
             cpu_std_time=stats.cpu_std,
             memory_usage_bytes=stats.memory_usage,
             file_size_bytes=stats.file_size,
+            samples=stats.samples,
         )

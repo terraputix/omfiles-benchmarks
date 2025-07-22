@@ -12,8 +12,8 @@ class BenchmarkResultsDF:
     def __init__(
         self,
         results_dir: str | Path = RESULTS_DIR,
-        all_runs_name: str = "benchmark_results_all.csv",
-        current_run_name: str = "benchmark_results_last.csv",
+        all_runs_name: str = "benchmark_results_all.parquet",
+        current_run_name: str = "benchmark_results_last.parquet",
     ):
         if not isinstance(results_dir, Path):
             results_dir = Path(results_dir)
@@ -29,20 +29,26 @@ class BenchmarkResultsDF:
         self.df = new_df
 
     def save_results(self) -> None:
-        """Save benchmark results to CSV and return DataFrame for display"""
-        # Save to last run CSV
-        self.df.write_csv(self.current_run_path)
+        """Save benchmark results to parquet"""
+        # Save to last run parquet
+        self.df.write_parquet(self.current_run_path)
         print(f"Latest results saved to {self.current_run_path}")
 
-        # Save to all runs CSV
-        with open(self.all_runs_path, mode="a") as f:
-            self.df.write_csv(f, include_header=False)
+        # Save to all runs parquet
+        if self.all_runs_path.exists():
+            all_df = pl.read_parquet(self.all_runs_path)
+            all_df = pl.concat([all_df, self.df])
+        else:
+            all_df = self.df
+
+        self.df.write_parquet(self.all_runs_path)
+        all_df.write_parquet(self.all_runs_path)
 
     def load_last_results(self):
         """Load last benchmark results"""
         if not self.current_run_path.exists():
             raise FileNotFoundError(f"File {self.current_run_path} does not exist")
-        self.df = pl.read_csv(self.current_run_path)
+        self.df = pl.read_parquet(self.current_run_path)
 
     def print_summary(self) -> None:
         """Print benchmark summary to console"""
