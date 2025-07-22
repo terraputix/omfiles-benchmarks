@@ -73,12 +73,6 @@ class BaselineWriter(BaseWriter[BaselineConfig]):
 class HDF5Writer(BaseWriter[HDF5Config]):
     def write(self, data: NDArrayLike) -> None:
         with h5py.File(self.filename, "w") as f:
-            if self.config.explicitly_convert_to_int:
-                # Fixme: This is just hardcoded for now.
-                # Ideally we would be using this from netcdf4, so that we can specify the correct
-                # scaling factor and offset converting to int32
-                data = (data * 100).astype(np.int32)  # type: ignore
-
             f.create_dataset(
                 "dataset",
                 data=data,
@@ -127,7 +121,7 @@ class NetCDFWriter(BaseWriter[NetCDFConfig]):
                 significant_digits=self.config.significant_digits,
             )
             var.scale_factor = self.config.scale_factor
-            var.add_offset = self.config.add_offset
+            # var.add_offset = self.config.add_offset
             var[:] = data
 
 
