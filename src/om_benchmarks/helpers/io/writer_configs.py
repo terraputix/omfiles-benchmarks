@@ -25,6 +25,7 @@ class FormatWriterConfig(ABC):
 
     # Common configuration options across formats
     chunk_size: Tuple[int, ...]
+    is_lossy_with_precision: float = float("nan")  # nan should indicate that config is not lossy
 
     @property
     @abstractmethod
@@ -46,7 +47,6 @@ class HDF5Config(FormatWriterConfig):
     compression: Optional[Union[h5py.filters.FilterRefBase, Literal["gzip", "lzf", "szip"]]] = None
     scale_offset: Optional[int] = None
     compression_opts: Optional[tuple] = None
-    explicitly_convert_to_int: bool = False
 
     @property
     def compression_identifier(self) -> str:
@@ -59,7 +59,7 @@ class HDF5Config(FormatWriterConfig):
         else:
             compression_str = f"{self.compression.filter_id}_{self.compression.filter_options}"
 
-        return f"{compression_str}_{self.scale_offset}_{self.explicitly_convert_to_int}"
+        return f"{compression_str}_{self.scale_offset}"
 
     @property
     def compression_pretty_name(self) -> str:
@@ -136,21 +136,21 @@ class NetCDFConfig(FormatWriterConfig):
     compression: Optional[CompressionType] = None
     compression_level: Optional[CompressionLevel] = 4
     scale_factor: float = 1.0
-    add_offset: float = 0.0
-    significant_digits: int = 6
+    # add_offset: float = 0.0
+    significant_digits: Optional[int] = None
 
     @property
     def compression_identifier(self) -> str:
         if self.compression is None:
             return "none"
             # return f"{self.compression}_{self.compression_level}_scale_{self.scale_factor}_offset_{str(int(self.add_offset))}_digits_{self.significant_digits}"
-        return f"{self.compression}_{self.compression_level}_scale_{self.scale_factor}_offset_{self.add_offset}_digits_{self.significant_digits}"
+        return f"{self.compression}_{self.compression_level}_scale_{self.scale_factor}_digits_{self.significant_digits}"
 
     @property
     def compression_pretty_name(self) -> str:
         if self.compression is None:
             return "None"
-        return f"{self.compression} {self.compression_level} scale {self.scale_factor} offset {self.add_offset} digits {self.significant_digits}"
+        return f"{self.compression} {self.compression_level} scale {self.scale_factor} digits {self.significant_digits}"
 
 
 @dataclass
@@ -170,3 +170,18 @@ class OMConfig(FormatWriterConfig):
         if self.compression is None:
             return "None"
         return f"{self.compression} scale {self.scale_factor} offset {self.add_offset}"
+
+
+@dataclass
+class BaselineConfig(FormatWriterConfig):
+    """Configuration for Baseline mmap numpy writer (raw .npy file)."""
+
+    dtype: str = "f4"
+
+    @property
+    def compression_identifier(self) -> str:
+        return f"baseline_{self.dtype}"
+
+    @property
+    def compression_pretty_name(self) -> str:
+        return f"Baseline mmap ({self.dtype})"

@@ -75,6 +75,7 @@ def get_marker_for_format(fmt: AvailableFormats) -> str:
         AvailableFormats.ZarrPythonViaZarrsCodecs: "v",
         AvailableFormats.NetCDF: "P",
         AvailableFormats.OM: "*",
+        AvailableFormats.Baseline: "X",
     }
     return marker_map[fmt]
 

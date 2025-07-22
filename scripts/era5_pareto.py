@@ -15,7 +15,14 @@ import typer
 from om_benchmarks.helpers.AsyncTyper import AsyncTyper
 from om_benchmarks.helpers.era5 import read_era5_data_to_temporal
 from om_benchmarks.helpers.formats import AvailableFormats
-from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig, HDF5Config, NetCDFConfig, OMConfig, ZarrConfig
+from om_benchmarks.helpers.io.writer_configs import (
+    BaselineConfig,
+    FormatWriterConfig,
+    HDF5Config,
+    NetCDFConfig,
+    OMConfig,
+    ZarrConfig,
+)
 from om_benchmarks.helpers.modes import MetricMode, OpMode
 from om_benchmarks.helpers.plotting import (
     create_and_save_compression_ratio_chart,
@@ -25,9 +32,9 @@ from om_benchmarks.helpers.plotting import (
     plot_radviz_results,
 )
 from om_benchmarks.helpers.results import BenchmarkResultsDF
-from om_benchmarks.helpers.schemas import BenchmarkRecord, BenchmarkStats, RunMetadata
+from om_benchmarks.helpers.schemas import BenchmarkRecord, BenchmarkStats
 from om_benchmarks.helpers.script_utils import get_era5_path_for_config, get_script_dirs
-from om_benchmarks.helpers.stats import _clear_cache, measure_memory, measure_time
+from om_benchmarks.helpers.stats import _clear_cache, mean_squared_error, measure_memory, measure_time
 
 app = AsyncTyper()
 
@@ -44,13 +51,25 @@ read_ranges: list[tuple[int, int, int]] = [
 
 chunk_sizes = {
     "small": (5, 5, 744),
-    "medium": (10, 10, 744),
-    "large": (20, 20, 744),
+    # "medium": (10, 10, 744),
+    # "large": (20, 20, 744),
     # "xtra_large": (40, 40, 744),
     # "xtra_xtra_large": (100, 100, 744),
 }
 
 READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
+    # numpy memmap as a baseline
+    (AvailableFormats.Baseline, BaselineConfig(chunk_size=chunk_sizes["small"])),
+    # netcdf baseline: no compression
+    (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression=None)),
+    # hdf5 baseline: no compression
+    (AvailableFormats.HDF5, HDF5Config(chunk_size=chunk_sizes["small"])),
+    # zarr baseline: no compression
+    (AvailableFormats.Zarr, ZarrConfig(chunk_size=chunk_sizes["small"], compressor=None)),
+    (
+        AvailableFormats.NetCDF,
+        NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", significant_digits=1),
+    ),
     (
         AvailableFormats.NetCDF,
         NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", significant_digits=2),
@@ -74,10 +93,8 @@ READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
             chunk_size=chunk_sizes["small"],
             compression="szip",
             compression_opts=("nn", 8),
-            explicitly_convert_to_int=True,
         ),
     ),
-    (AvailableFormats.HDF5, HDF5Config(chunk_size=chunk_sizes["small"])),
     (
         AvailableFormats.HDF5,
         HDF5Config(
@@ -268,6 +285,18 @@ async def main(
                             write_times.append(result.elapsed)  # type: ignore
                             write_cpu_times.append(result.cpu_elapsed)  # type: ignore
 
+                    file_size = writer.get_file_size()
+                    del writer
+
+                    # read the data again once to calculate information loss via MSE
+                    control_data = await (await format.reader_class.create(file_path.__str__())).read(
+                        (slice(0, data_shape[0]), slice(0, data_shape[1]), slice(0, data_shape[2]))
+                    )
+                    mse = mean_squared_error(control_data, data)
+                    del control_data
+                    gc.collect()
+                    print(mse)
+
                     write_stats = BenchmarkStats(
                         mean=statistics.mean(write_times) if write_times else 0.0,
                         std=statistics.stdev(write_times) if len(write_times) > 1 else 0.0,
@@ -276,16 +305,17 @@ async def main(
                         cpu_mean=statistics.mean(write_cpu_times) if write_cpu_times else 0.0,
                         cpu_std=statistics.stdev(write_cpu_times) if len(write_cpu_times) > 1 else 0.0,
                         memory_usage=statistics.mean(write_memory_usages) if len(write_memory_usages) > 0 else 0.0,
-                        file_size=writer.get_file_size(),
+                        file_size=file_size,
                     )
-
-                    metadata = RunMetadata(
+                    write_result = BenchmarkRecord.from_benchmark_stats(
+                        stats=write_stats,
+                        format=format,
+                        writer_config=config_for_this_run,
+                        operation=op_mode,
                         array_shape=data.shape,
                         read_index=None,
-                        format_config=config_for_this_run,
                         iterations=iterations,
                     )
-                    write_result = BenchmarkRecord.from_benchmark_stats(write_stats, format, op_mode, metadata)
                     bm_results.append(write_result)
 
                 elif op_mode == OpMode.READ:
@@ -338,13 +368,15 @@ async def main(
                             file_size=file_size,
                         )
 
-                        metadata = RunMetadata(
+                        result = BenchmarkRecord.from_benchmark_stats(
+                            stats=read_stats,
+                            format=format,
+                            writer_config=config_for_this_run,
+                            operation=op_mode,
                             array_shape=data_shape,
                             read_index=read_length,
-                            format_config=config_for_this_run,
                             iterations=iterations,
                         )
-                        result = BenchmarkRecord.from_benchmark_stats(read_stats, format, op_mode, metadata)
                         bm_results.append(result)
                         gc.collect()
 
