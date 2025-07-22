@@ -27,6 +27,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "pyarrow>=20.0.0",
     "pcodec>=0.3.5",
+    "python-dotenv>=1.1.1",
 ]
 
 [dependency-groups]
