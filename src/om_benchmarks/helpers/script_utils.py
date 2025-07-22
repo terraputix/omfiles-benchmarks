@@ -27,10 +27,6 @@ def get_era5_path_for_config(format: AvailableFormats, config: FormatWriterConfi
 #     return Path(f"{FILES_DIR}/era5_{chunk_size_str}").with_suffix(f"{format.file_extension}")
 
 
-def get_file_path_for_format(format: AvailableFormats) -> Path:
-    return Path(f"{FILES_DIR}/data").with_suffix(f"{format.file_extension}")
-
-
 def create_directory_with_confirmation(
     directory: Path,
 ) -> None:
