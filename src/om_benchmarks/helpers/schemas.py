@@ -13,7 +13,7 @@ BENCHMARK_SCHEMA = pl.Schema(
         "format": pl.Utf8,
         "array_shape": pl.Utf8,
         "compression": pl.Utf8,
-        "lossy_precision": pl.Float64,
+        "data_mse": pl.Float64,
         "chunk_shape": pl.Utf8,
         "read_index": pl.Utf8,
         "iterations": pl.Int64,
@@ -49,7 +49,7 @@ class BenchmarkRecord:
     format: str
     array_shape: str  # serialized tuple as string
     compression: str
-    lossy_precision: float
+    data_mse: float
     chunk_shape: str  # serialized tuple as string
     read_index: str  # serialized tuple as string
     iterations: int
@@ -72,6 +72,7 @@ class BenchmarkRecord:
         array_shape: Tuple[int, ...],
         read_index: Optional[Tuple[int, ...]],
         iterations: int,
+        data_mse: float,
     ) -> "BenchmarkRecord":
         """Convert BenchmarkStats to BenchmarkRecord"""
         return cls(
@@ -79,7 +80,7 @@ class BenchmarkRecord:
             format=format.name,
             array_shape=str(array_shape),
             compression=writer_config.compression_pretty_name,
-            lossy_precision=writer_config.is_lossy_with_precision,
+            data_mse=data_mse,
             chunk_shape=str(writer_config.chunk_size),
             read_index=str(read_index) if read_index is not None else "None",
             iterations=iterations,

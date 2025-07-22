@@ -13,7 +13,6 @@ import tensorstore as ts
 import xarray as xr
 import zarr
 from omfiles.types import BasicSelection
-from zarr.core.buffer.core import NDArrayLike
 
 
 class BaseReader(ABC):
@@ -160,7 +159,6 @@ class HDF5HidefixReader(BaseReader):
 
     @property
     def chunk_shape(self) -> Optional[tuple[int, ...]]:
-        # FIXME: unnecessary cast?
         return cast(Optional[tuple[int, ...]], self.h5_reader["dataset"].chunks)
 
 
@@ -182,7 +180,7 @@ class ZarrReader(BaseReader):
         return self
 
     async def read(self, index: BasicSelection) -> np.ndarray:
-        return cast(NDArrayLike, self.zarr_reader[index]).__array__()
+        return self.zarr_reader[index].__array__()
 
     def close(self) -> None:
         self.zarr_reader.store.close()
@@ -295,18 +293,18 @@ class NetCDFReader(BaseReader):
 
 class OMReader(BaseReader):
     # om_reader: om.OmFilePyReaderAsync
-    om_reader: om.OmFilePyReaderAsync
+    om_reader: om.OmFilePyReader
 
     @classmethod
     async def create(cls, filename: str):
         self = await super().create(filename)
         # self.om_reader = await om.OmFilePyReaderAsync.from_path(str(self.filename))
-        self.om_reader = await om.OmFilePyReaderAsync.from_path(str(self.filename))
+        self.om_reader = om.OmFilePyReader.from_path(str(self.filename))
         return self
 
     async def read(self, index: BasicSelection) -> np.ndarray:
         # return await self.om_reader.read_concurrent(index)
-        return await self.om_reader.read_concurrent(index)
+        return self.om_reader[index]
 
     def close(self) -> None:
         self.om_reader.close()

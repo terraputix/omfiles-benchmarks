@@ -57,6 +57,7 @@ class BenchmarkResultsDF:
                     pl.col("cpu_mean_time").round(6).alias("cpu_s"),
                     (pl.col("memory_usage_bytes") / 1024).round(2).alias("memory_kb"),
                     (pl.col("file_size_bytes") / (1024 * 1024)).round(2).alias("size_mb"),
+                    pl.col("data_mse").round(6).alias("mse"),
                 ]
             )
             .select(
@@ -72,6 +73,7 @@ class BenchmarkResultsDF:
                     "cpu_s",
                     "memory_kb",
                     "size_mb",
+                    "mse",
                 ]
             )
             .sort(["operation", "mean_s"])

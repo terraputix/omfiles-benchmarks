@@ -9,7 +9,6 @@ from functools import partial, wraps
 from typing import Any, Awaitable, Callable, Coroutine, List, NamedTuple, Union
 
 import memray
-import numpy as np
 
 from om_benchmarks.helpers.schemas import BenchmarkStats
 
@@ -21,10 +20,6 @@ class TimeMeasurement(NamedTuple):
 
 class MemoryMeasurement(NamedTuple):
     memory_total_allocations: float
-
-
-def mean_squared_error(original: np.ndarray, decompressed: np.ndarray) -> np.float32:
-    return np.mean((original - decompressed) ** 2)
 
 
 # https://stackoverflow.com/questions/72382098/how-to-check-if-a-callable-object-is-async-using-inspect-module-python
