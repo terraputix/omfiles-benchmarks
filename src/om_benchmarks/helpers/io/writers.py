@@ -11,7 +11,6 @@ import numpy as np
 import omfiles as om
 import zarr
 import zarr.storage
-from zarr.core.buffer import NDArrayLike
 
 from om_benchmarks.helpers.io.writer_configs import (
     BaselineConfig,
@@ -33,7 +32,7 @@ class BaseWriter(ABC, Generic[ConfigType]):
         self.config = config
 
     @abstractmethod
-    def write(self, data: NDArrayLike) -> None:
+    def write(self, data: np.ndarray) -> None:
         raise NotImplementedError("The write method must be implemented by subclasses")
 
     def get_file_size(self) -> int:
@@ -61,7 +60,7 @@ class BaselineWriter(BaseWriter[BaselineConfig]):
     Baseline writer that serializes a numpy array to disk using numpy's memmap
     """
 
-    def write(self, data: NDArrayLike) -> None:
+    def write(self, data: np.ndarray) -> None:
         assert data.dtype == np.float32, f"Expected float32, got {data.dtype}"
         # Write data via memmap
         mm = np.lib.format.open_memmap(self.filename, dtype=data.dtype, mode="w+", shape=data.shape)
@@ -71,7 +70,7 @@ class BaselineWriter(BaseWriter[BaselineConfig]):
 
 
 class HDF5Writer(BaseWriter[HDF5Config]):
-    def write(self, data: NDArrayLike) -> None:
+    def write(self, data: np.ndarray) -> None:
         with h5py.File(self.filename, "w") as f:
             f.create_dataset(
                 "dataset",
@@ -84,7 +83,7 @@ class HDF5Writer(BaseWriter[HDF5Config]):
 
 
 class ZarrWriter(BaseWriter[ZarrConfig]):
-    def write(self, data: NDArrayLike) -> None:
+    def write(self, data: np.ndarray) -> None:
         with zarr.storage.LocalStore(str(self.filename), read_only=False) as store:
             root = zarr.open(store, mode="w", zarr_format=self.config.zarr_format)
             # Ensure root is a Group and not an Array (for type checker)
@@ -103,7 +102,7 @@ class ZarrWriter(BaseWriter[ZarrConfig]):
 
 
 class NetCDFWriter(BaseWriter[NetCDFConfig]):
-    def write(self, data: NDArrayLike) -> None:
+    def write(self, data: np.ndarray) -> None:
         with nc.Dataset(self.filename, "w", format="NETCDF4") as ds:
             dimension_names = tuple(f"dim{i}" for i in range(data.ndim))
             for dim, size in zip(dimension_names, data.shape):
@@ -126,7 +125,7 @@ class NetCDFWriter(BaseWriter[NetCDFConfig]):
 
 
 class OMWriter(BaseWriter[OMConfig]):
-    def write(self, data: NDArrayLike) -> None:
+    def write(self, data: np.ndarray) -> None:
         writer = om.OmFilePyWriter(str(self.filename))
         variable = writer.write_array(
             data=data.__array__(),
