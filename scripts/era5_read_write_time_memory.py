@@ -10,7 +10,6 @@ from typing import List, Tuple
 import hdf5plugin
 import numcodecs
 import numcodecs.zarr3
-import numpy as np
 import polars as pl
 import typer
 
