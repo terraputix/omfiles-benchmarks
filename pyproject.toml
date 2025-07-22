@@ -9,7 +9,9 @@ dependencies = [
     "hidefix",
     "h5py",
     "netCDF4",
-    "zarr",
+    # pin zarr3 because of compressor issues:
+    # https://github.com/zarr-developers/zarr-python/issues/2900
+    "zarr==3.0.3",
     "zarrs",
     "tensorstore",
     "polars",
@@ -20,6 +22,12 @@ dependencies = [
     "typer>=0.16.0",
     "hdf5plugin>=5.1.0",
     "psutil>=7.0.0",
+    "memray>=1.17.2",
+    "matplotlib>=3.10.3",
+    "seaborn>=0.13.2",
+    "pyarrow>=20.0.0",
+    "pcodec>=0.3.5",
+    "python-dotenv>=1.1.1",
 ]
 
 [dependency-groups]

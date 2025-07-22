@@ -1,11 +1,21 @@
 import os
 
-# Get directory paths from environment variables or use defaults
-RESULTS_DIR = os.environ.get("BENCHMARK_RESULTS_DIR", "benchmark_results")
-PLOTS_DIR = os.environ.get("BENCHMARK_PLOTS_DIR", "benchmark_plots")
-FILES_DIR = os.environ.get("BENCHMARK_FILES_DIR", "benchmark_files")
+from dotenv import load_dotenv
 
-# Make sure the paths are normalized
-RESULTS_DIR = os.path.normpath(RESULTS_DIR)
-PLOTS_DIR = os.path.normpath(PLOTS_DIR)
-FILES_DIR = os.path.normpath(FILES_DIR)
+# Load environment variables from .env file
+load_dotenv()
+
+
+def get_env_path(var_name, default):
+    path = os.environ.get(var_name, default)
+    path = os.path.normpath(path)
+    # Check if path is set and is a directory
+    if not path or not os.path.isdir(path):
+        print(f"Warning: Environment variable {var_name} is not set. Using default: {default}")
+        path = os.path.normpath(default)
+    return path
+
+
+RESULTS_DIR = get_env_path("BENCHMARK_RESULTS_DIR", "benchmark_results")
+PLOTS_DIR = get_env_path("BENCHMARK_PLOTS_DIR", "benchmark_plots")
+FILES_DIR = get_env_path("BENCHMARK_FILES_DIR", "benchmark_files")

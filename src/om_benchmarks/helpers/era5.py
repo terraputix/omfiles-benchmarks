@@ -1,9 +1,8 @@
 import os
 from functools import lru_cache
-from typing import cast
 
+import numpy as np
 import xarray as xr
-from zarr.core.buffer import NDArrayLike
 
 
 def configure_era5_request():
@@ -82,12 +81,28 @@ def configure_era5_request():
 
 
 @lru_cache(maxsize=1)
-def read_era5_data(file) -> NDArrayLike:
+def read_era5_data(file) -> np.ndarray:
     if not os.path.exists(file):
         raise FileNotFoundError(f"File not found: {file}")
 
     print(f"Reading t2m variable from {file}...")
     ds = xr.open_dataset(file)
-    data = cast(NDArrayLike, ds["t2m"].values)
+    data = ds["t2m"].values
+    print(f"Loaded t2m data with shape: {data.shape}")
+    return data
+
+
+@lru_cache(maxsize=1)
+def read_era5_data_to_temporal(file) -> np.ndarray:
+    if not os.path.exists(file):
+        raise FileNotFoundError(f"File not found: {file}")
+
+    print(f"Reading t2m variable from {file}...")
+    ds = xr.open_dataset(file)
+    data = ds["t2m"].values
+    # convert to temporal format. Our data has a shape of (time, lat, lon) but
+    # we want to have it shaped like (lat, lon, time)
+    data = data.transpose((1, 2, 0)).copy()
+
     print(f"Loaded t2m data with shape: {data.shape}")
     return data

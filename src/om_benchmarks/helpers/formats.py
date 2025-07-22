@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Dict, Type
 
 from om_benchmarks.helpers.io.readers import (
+    BaselineReader,
     BaseReader,
     HDF5HidefixReader,
     HDF5Reader,
@@ -11,17 +12,18 @@ from om_benchmarks.helpers.io.readers import (
     ZarrReader,
     ZarrsCodecsZarrReader,
 )
-from om_benchmarks.helpers.io.writers import BaseWriter, HDF5Writer, NetCDFWriter, OMWriter, ZarrWriter
+from om_benchmarks.helpers.io.writers import BaselineWriter, BaseWriter, HDF5Writer, NetCDFWriter, OMWriter, ZarrWriter
 
 
 class AvailableFormats(Enum):
-    HDF5 = "h5"
-    HDF5Hidefix = "h5hidefix"
-    Zarr = "zarr"
-    ZarrTensorStore = "zarrTensorStore"
-    ZarrPythonViaZarrsCodecs = "zarrPythonViaZarrsCodecs"
-    NetCDF = "nc"
-    OM = "om"
+    HDF5 = "HDF5"
+    HDF5Hidefix = "HDF5Hidefix"
+    Zarr = "Zarr"
+    ZarrTensorStore = "ZarrTensorStore"
+    ZarrPythonViaZarrsCodecs = "ZarrPythonViaZarrsCodecs"
+    NetCDF = "NetCDF"
+    OM = "OM"
+    Baseline = "Baseline"
 
     @property
     def file_extension(self) -> str:
@@ -39,6 +41,8 @@ class AvailableFormats(Enum):
             return ".nc"
         elif self == AvailableFormats.OM:
             return ".om"
+        elif self == AvailableFormats.Baseline:
+            return ".mmap"
         else:
             raise ValueError(f"Unknown format: {self.name}")
 
@@ -62,6 +66,7 @@ _writer_classes: Dict[AvailableFormats, Type[BaseWriter]] = {
     AvailableFormats.Zarr: ZarrWriter,
     AvailableFormats.NetCDF: NetCDFWriter,
     AvailableFormats.OM: OMWriter,
+    AvailableFormats.Baseline: BaselineWriter,
 }
 
 _reader_classes: Dict[AvailableFormats, Type[BaseReader]] = {
@@ -72,4 +77,5 @@ _reader_classes: Dict[AvailableFormats, Type[BaseReader]] = {
     AvailableFormats.ZarrPythonViaZarrsCodecs: ZarrsCodecsZarrReader,
     AvailableFormats.NetCDF: NetCDFReader,
     AvailableFormats.OM: OMReader,
+    AvailableFormats.Baseline: BaselineReader,
 }
