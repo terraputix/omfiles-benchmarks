@@ -51,10 +51,10 @@ read_ranges: list[tuple[int, int, int]] = [
 
 chunk_sizes = {
     "small": (5, 5, 744),
-    # "medium": (10, 10, 744),
-    # "large": (20, 20, 744),
-    # "xtra_large": (40, 40, 744),
-    # "xtra_xtra_large": (100, 100, 744),
+    "medium": (10, 10, 744),
+    "large": (20, 20, 744),
+    "xtra_large": (40, 40, 744),
+    "xtra_xtra_large": (100, 100, 744),
 }
 
 READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
