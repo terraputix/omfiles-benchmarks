@@ -192,9 +192,9 @@ def save_results(results: List[BenchmarkResult], results_dir: Path) -> pl.DataFr
 
 
 def main(
-    rust_binary: str = typer.Option("rust/target/release/om-rust-bm", help="Path to Rust binary"),
-    swift_binary: str = typer.Option("Swift/.build/release/om-swift-bm", help="Path to Swift binary"),
-    typescript_script: str = typer.Option("typescript/om-typescript-bm.js", help="Path to TypeScript script"),
+    rust_binary: str = typer.Option("other_languages/rust/target/release/om-rust-bm", help="Path to Rust binary"),
+    swift_binary: str = typer.Option("other_languages/Swift/.build/release/om-swift-bm", help="Path to Swift binary"),
+    ts_script: str = typer.Option("other_languages/typescript/om-typescript-bm.js", help="Path to TypeScript script"),
     iterations: int = typer.Option(20, help="Number of iterations for each benchmark"),
     file: List[str] = typer.Argument(..., help="OM files to benchmark"),
 ):
@@ -217,7 +217,7 @@ def main(
         "python": PythonImplementation(),
         "rust": CLIImplementation("rust", [rust_binary]),
         "swift": CLIImplementation("swift", [swift_binary]),
-        "typescript": CLIImplementation("typescript", ["node", typescript_script]),
+        "typescript": CLIImplementation("typescript", ["node", ts_script]),
     }
 
     results = run_benchmarks(file, read_selections, languages, implementations, iterations)
