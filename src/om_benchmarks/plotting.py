@@ -1,6 +1,6 @@
 from functools import reduce
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import matplotlib.axes
 import matplotlib.figure
@@ -54,6 +54,8 @@ rcParams.update(
     }
 )
 
+MSE_COLUMN = "data_mse"
+
 
 def normalize_compression(comp: Optional[str]) -> str:
     if comp is None or comp.lower() == "none" or comp == "":
@@ -87,17 +89,17 @@ line_width_mse_mapping: list[tuple[float, float]] = [
     (0.2, 0.6),
     (0.4, 0.8),
     (0.8, 1.0),
-    (2.0, 2.0),
-    (4.0, 3.0),
+    (2.0, 1.5),
+    (4.0, 2.0),
 ]
 
 
-def edgecolor_and_linewidth(row_dict, mse_column="data_mse"):
+def edgecolor_and_linewidth(row_dict):
     """
     Estimates edge color and line width for a given row
     dictionary based on the mse value (indicator for lossiness)
     """
-    lossiness = row_dict.get(mse_column, 0.0)
+    lossiness = row_dict.get(MSE_COLUMN, 0.0)
     if not lossiness > 0.0:
         return "black", 0.5
     else:
@@ -109,6 +111,23 @@ def get_color_palette(categories: Sequence[str]) -> dict[str, tuple[float, float
     unique = list(dict.fromkeys(categories))  # preserve order
     palette = sns.color_palette("colorblind", n_colors=len(unique))
     return dict(zip(unique, palette))
+
+
+def get_marker_style(row_dict: dict[str, Any], color_map: dict[str, tuple[float, float, float]]):
+    fmt = AvailableFormats(row_dict["format"])
+    compression = normalize_compression(row_dict.get("compression"))
+    label = _get_label(fmt, compression)
+    marker = get_marker_for_format(fmt)
+    edgecolor, linewidth = edgecolor_and_linewidth(row_dict)
+    color = color_map[compression]
+    return {
+        "marker": marker,
+        "markerfacecolor": color,
+        "markeredgecolor": edgecolor,
+        "markeredgewidth": linewidth,
+        "markersize": 8,
+        "label": label,
+    }
 
 
 def get_5_4_subplot_grid(n_rows: int, n_cols: int) -> Tuple[matplotlib.figure.Figure, np.ndarray]:
@@ -310,8 +329,8 @@ def create_scatter_size_vs_mode(
 
     read_indices = df["read_index"].unique().sort().to_list()
     chunk_shapes = df["chunk_shape"].unique().to_list()
-
     assert len(chunk_shapes) == 1, f"Expected 1 chunk shape, got {len(chunk_shapes)}"
+    chunk_shape = chunk_shapes[0]
 
     if len(read_indices) == 1:
         n_rows = 1
@@ -330,32 +349,6 @@ def create_scatter_size_vs_mode(
     # Color by compression, marker by format
     color_map = get_color_palette([normalize_compression(c) for c in df["compression"].to_list()])
 
-    chunk_shape = chunk_shapes[0]
-    # --- Build legend handles ONCE for all unique (format, compression) ---
-    unique_pairs = set()
-    for row in df.iter_rows():
-        fmt = AvailableFormats(row[df.columns.index("format")])
-        compression = normalize_compression(row[df.columns.index("compression")])
-        label = _get_label(fmt, compression)
-        unique_pairs.add((label, fmt, compression))
-
-    handles = []
-    for label, fmt, compression in sorted(unique_pairs):
-        color = color_map[compression]
-        marker = get_marker_for_format(fmt)
-        handles.append(
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker=marker,
-                color="w",
-                markerfacecolor=color,
-                markeredgecolor="black",
-                markersize=8,
-                label=label,
-            )
-        )
-
     # plot subplots
     for row_idx in range(0, n_rows):
         for col_idx in range(0, n_cols):
@@ -371,25 +364,16 @@ def create_scatter_size_vs_mode(
             filtered_df = add_compression_ratio_column(filtered_df)
 
             # Plot each (format, compression) as a point
-            for row in filtered_df.iter_rows():
-                row_dict = dict(zip(filtered_df.columns, row))
-                fmt: AvailableFormats = AvailableFormats(row_dict["format"])
-                compression = normalize_compression(row_dict.get("compression"))
-                color = color_map[compression]
-                marker = get_marker_for_format(fmt)
-                label = _get_label(fmt, compression)
-
-                edgecolor, linewidth = edgecolor_and_linewidth(row_dict)
-
+            for row_dict in filtered_df.iter_rows(named=True):
+                marker_props = get_marker_style(row_dict, color_map)
                 ax.scatter(
                     row_dict["compression_ratio"],
                     row_dict[mode.scatter_size_target_column],
-                    color=color,
-                    marker=marker,
+                    color=marker_props["markerfacecolor"],
+                    marker=marker_props["marker"],
                     s=80,
-                    edgecolor=edgecolor,
-                    linewidth=linewidth,
-                    label=label,
+                    edgecolor=marker_props["markeredgecolor"],
+                    linewidth=marker_props["markeredgewidth"],
                 )
 
             ax.set_xlabel("Compression Ratio")
@@ -402,10 +386,22 @@ def create_scatter_size_vs_mode(
             if operation == OpMode.READ:
                 ax.set_title(f"Random read of size {str(read_index)}")
 
+    # Add legend
+    handles = []
+    df_for_legend = df.unique(subset=["compression", "format"])
+    for row_dict in df_for_legend.iter_rows(named=True):
+        handles.append(
+            matplotlib.lines.Line2D(
+                [0],
+                [0],
+                color="w",
+                **get_marker_style(row_dict=row_dict, color_map=color_map),
+            )
+        )
     fig.legend(handles=handles, loc="center right", frameon=True)
+
     title = f"File Size vs. {mode.vs_title}"
     subtitle = "File Chunk Shape " + str(chunk_shape)
-
     fig.suptitle(rf"\Large {title}" + "\n" + rf"\normalsize {subtitle}")
     plt.savefig(output_path)
     plt.close()
