@@ -171,14 +171,14 @@ def _uncompressed_size_from_array_shape(array_shape: str, bytes_per_element: int
     return total_size_bytes
 
 
-def add_compression_ratio_column(df: pl.DataFrame) -> pl.DataFrame:
+def add_compression_factor_column(df: pl.DataFrame) -> pl.DataFrame:
     df = df.with_columns(
         pl.struct(["array_shape", "file_size_bytes"])
         .map_elements(
             lambda row: _uncompressed_size_from_array_shape(row["array_shape"]) / row["file_size_bytes"],
             return_dtype=pl.Float32,
         )
-        .alias("compression_ratio")
+        .alias("compression_factor")
     )
     return df
 
@@ -277,10 +277,10 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
     plt.close()
 
 
-def create_and_save_compression_ratio_chart(
+def create_and_save_compression_factor_chart(
     df: pl.DataFrame,
     save_dir: Path,
-    file_name: str = "compression_ratio_comparison.png",
+    file_name: str = "compression_factor_comparison.png",
 ) -> None:
     output_path = save_dir / file_name
     filtered_df = df.filter(pl.col("file_size_bytes") > 0)
@@ -289,27 +289,27 @@ def create_and_save_compression_ratio_chart(
         print("No write data with file sizes > 0 found")
         return
 
-    # add compression_ratio column
-    filtered_df = add_compression_ratio_column(filtered_df)
-    filtered_df = filtered_df.sort("compression_ratio", descending=True)
+    # add compression_factor column
+    filtered_df = add_compression_factor_column(filtered_df)
+    filtered_df = filtered_df.sort("compression_factor", descending=True)
 
     labels = [
         _get_label(AvailableFormats(fmt), filtered_df["compression"][i])
         for i, fmt in enumerate(filtered_df["format"].to_list())
     ]
-    compression_ratios = filtered_df["compression_ratio"].to_list()
+    compression_factors = filtered_df["compression_factor"].to_list()
 
     color_map = get_color_palette(labels)
     colors = [color_map[label] for label in labels]
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.bar(labels, compression_ratios, color=colors, edgecolor="white", linewidth=0.5)
+    ax.bar(labels, compression_factors, color=colors, edgecolor="white", linewidth=0.5)
 
     ax.set_xlabel("Format (Compression)")
-    ax.set_ylabel("Compression Ratio")
+    ax.set_ylabel("Compression Factor")
     ax.tick_params(axis="x", rotation=90)
 
-    title = "Compression Ratio Comparison for different formats and compression schemas"
+    title = "Compression Factor Comparison for different formats and compression schemas"
     fig.suptitle(rf"\Large {title}")
     plt.savefig(output_path)
     plt.close()
@@ -361,13 +361,13 @@ def create_scatter_size_vs_mode(
                 ax.set_visible(False)
                 continue
 
-            filtered_df = add_compression_ratio_column(filtered_df)
+            filtered_df = add_compression_factor_column(filtered_df)
 
             # Plot each (format, compression) as a point
             for row_dict in filtered_df.iter_rows(named=True):
                 marker_props = get_marker_style(row_dict, color_map)
                 ax.scatter(
-                    row_dict["compression_ratio"],
+                    row_dict["compression_factor"],
                     row_dict[mode.scatter_size_target_column],
                     color=marker_props["markerfacecolor"],
                     marker=marker_props["marker"],
@@ -376,7 +376,7 @@ def create_scatter_size_vs_mode(
                     linewidth=marker_props["markeredgewidth"],
                 )
 
-            ax.set_xlabel("Compression Ratio")
+            ax.set_xlabel("Compression Factor")
             ax.set_ylabel(mode.y_label)
             ax.set_yscale("log", base=mode.log_base)
             ax.yaxis.set_major_formatter(FuncFormatter(mode.target_values_formatter))
@@ -562,11 +562,11 @@ def custom_radviz(
 def plot_radviz_results(df: pl.DataFrame, save_dir: Path, file_name: str = "radviz_results.png") -> None:
     output_path = save_dir / file_name
 
-    # Add compression ratio if not already present
-    df = add_compression_ratio_column(df)
+    # Add compression_factor if not already present
+    df = add_compression_factor_column(df)
 
     # Define which columns to use for radviz
-    radviz_cols = ["compression_ratio", "mean_time", "memory_usage_bytes"]
+    radviz_cols = ["compression_factor", "mean_time", "memory_usage_bytes"]
     invert_cols = ["mean_time", "memory_usage_bytes"]
 
     # Remove rows with missing values in radviz columns

@@ -27,7 +27,7 @@ from om_benchmarks.io.writer_configs import (
 from om_benchmarks.modes import MetricMode, OpMode
 from om_benchmarks.mse import MSECache, mean_squared_error
 from om_benchmarks.plotting import (
-    create_and_save_compression_ratio_chart,
+    create_and_save_compression_factor_chart,
     create_and_save_memory_usage_chart,
     create_and_save_perf_chart,
     create_scatter_size_vs_mode,
@@ -426,7 +426,7 @@ async def main(
             plots_dir,
             file_name=f"radviz_results_{chunk_size}_{op_mode.value}_{mode.value}.png",
         )
-        create_and_save_compression_ratio_chart(
+        create_and_save_compression_factor_chart(
             results_df.df.filter(pl.col("operation") == op_mode.value),
             plots_dir,
             file_name=f"compression_ratio_chart_{chunk_size}_{op_mode.value}_{mode.value}.png",
