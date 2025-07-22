@@ -10,7 +10,7 @@ from typing import Any, Awaitable, Callable, Coroutine, List, NamedTuple, Union
 
 import memray
 
-from om_benchmarks.helpers.schemas import BenchmarkStats
+from om_benchmarks.schemas import BenchmarkStats
 
 
 class TimeMeasurement(NamedTuple):

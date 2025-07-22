@@ -13,9 +13,9 @@ import seaborn as sns
 from matplotlib import rcParams
 from matplotlib.ticker import FuncFormatter
 
-from om_benchmarks.helpers.formats import AvailableFormats
-from om_benchmarks.helpers.modes import MetricMode, OpMode, format_bytes, format_time
-from om_benchmarks.helpers.parse_tuple import pretty_read_index
+from om_benchmarks.formats import AvailableFormats
+from om_benchmarks.modes import MetricMode, OpMode, format_bytes, format_time
+from om_benchmarks.parse_tuple import pretty_read_index
 
 # plotting backend does not need to be interactive
 # this will otherwise cause problems when matplotlib objects are gc-ed

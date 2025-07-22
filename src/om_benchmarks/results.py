@@ -2,8 +2,8 @@ from pathlib import Path
 
 import polars as pl
 
-from om_benchmarks.helpers.constants import RESULTS_DIR
-from om_benchmarks.helpers.schemas import BENCHMARK_SCHEMA, BenchmarkRecord
+from om_benchmarks.constants import RESULTS_DIR
+from om_benchmarks.schemas import BENCHMARK_SCHEMA, BenchmarkRecord
 
 
 class BenchmarkResultsDF:

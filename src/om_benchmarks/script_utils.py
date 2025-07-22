@@ -2,9 +2,9 @@ import re
 from pathlib import Path
 from typing import Tuple
 
-from om_benchmarks.helpers.constants import FILES_DIR, PLOTS_DIR, RESULTS_DIR
-from om_benchmarks.helpers.formats import AvailableFormats
-from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig
+from om_benchmarks.constants import FILES_DIR, PLOTS_DIR, RESULTS_DIR
+from om_benchmarks.formats import AvailableFormats
+from om_benchmarks.io.writer_configs import FormatWriterConfig
 
 
 def make_file_name_safe(s: str) -> str:

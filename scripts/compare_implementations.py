@@ -10,9 +10,9 @@ from typing import Dict, List, Optional, Protocol, Tuple, Union
 import polars as pl
 import typer
 
-from om_benchmarks.helpers.plotting import create_and_save_perf_chart
-from om_benchmarks.helpers.script_utils import get_script_dirs
-from om_benchmarks.helpers.stats import _clear_cache
+from om_benchmarks.plotting import create_and_save_perf_chart
+from om_benchmarks.script_utils import get_script_dirs
+from om_benchmarks.stats import _clear_cache
 
 # Type definitions
 ReadSelection = Union[Tuple[int, int, int], None]  # (t, y, x) dimensions or None for full file
