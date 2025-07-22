@@ -80,6 +80,31 @@ def get_marker_for_format(fmt: AvailableFormats) -> str:
     return marker_map[fmt]
 
 
+# maps mse values to line widths
+line_width_mse_mapping: list[tuple[float, float]] = [
+    (0.0, 0.2),
+    (0.1, 0.4),
+    (0.2, 0.6),
+    (0.4, 0.8),
+    (0.8, 1.0),
+    (2.0, 2.0),
+    (4.0, 3.0),
+]
+
+
+def edgecolor_and_linewidth(row_dict, mse_column="data_mse"):
+    """
+    Estimates edge color and line width for a given row
+    dictionary based on the mse value (indicator for lossiness)
+    """
+    lossiness = row_dict.get(mse_column, 0.0)
+    if not lossiness > 0.0:
+        return "black", 0.5
+    else:
+        linewidths = [width for mse, width in line_width_mse_mapping if mse <= lossiness]
+        return "red", linewidths[-1]
+
+
 def get_color_palette(categories: Sequence[str]) -> dict[str, tuple[float, float, float]]:
     unique = list(dict.fromkeys(categories))  # preserve order
     palette = sns.color_palette("colorblind", n_colors=len(unique))
@@ -354,13 +379,16 @@ def create_scatter_size_vs_mode(
                 marker = get_marker_for_format(fmt)
                 label = _get_label(fmt, compression)
 
+                edgecolor, linewidth = edgecolor_and_linewidth(row_dict)
+
                 ax.scatter(
                     row_dict["compression_ratio"],
                     row_dict[mode.scatter_size_target_column],
                     color=color,
                     marker=marker,
                     s=80,
-                    edgecolor="black",
+                    edgecolor=edgecolor,
+                    linewidth=linewidth,
                     label=label,
                 )
 
