@@ -159,7 +159,6 @@ class HDF5HidefixReader(BaseReader):
 
     @property
     def chunk_shape(self) -> Optional[tuple[int, ...]]:
-        # FIXME: unnecessary cast?
         return cast(Optional[tuple[int, ...]], self.h5_reader["dataset"].chunks)
 
 
@@ -181,7 +180,7 @@ class ZarrReader(BaseReader):
         return self
 
     async def read(self, index: BasicSelection) -> np.ndarray:
-        return cast(np.ndarray, self.zarr_reader[index]).__array__()
+        return self.zarr_reader[index].__array__()
 
     def close(self) -> None:
         self.zarr_reader.store.close()
