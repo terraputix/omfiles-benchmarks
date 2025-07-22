@@ -25,7 +25,6 @@ class FormatWriterConfig(ABC):
 
     # Common configuration options across formats
     chunk_size: Tuple[int, ...]
-    is_lossy_with_precision: float = float("nan")  # nan should indicate that config is not lossy
 
     @property
     @abstractmethod

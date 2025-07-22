@@ -13,7 +13,6 @@ import tensorstore as ts
 import xarray as xr
 import zarr
 from omfiles.types import BasicSelection
-from zarr.core.buffer.core import NDArrayLike
 
 
 class BaseReader(ABC):
@@ -182,7 +181,7 @@ class ZarrReader(BaseReader):
         return self
 
     async def read(self, index: BasicSelection) -> np.ndarray:
-        return cast(NDArrayLike, self.zarr_reader[index]).__array__()
+        return cast(np.ndarray, self.zarr_reader[index]).__array__()
 
     def close(self) -> None:
         self.zarr_reader.store.close()

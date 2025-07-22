@@ -4,11 +4,13 @@ import random
 import shutil
 import statistics
 from dataclasses import replace
+from pathlib import Path
 from typing import List, Tuple
 
 import hdf5plugin
 import numcodecs
 import numcodecs.zarr3
+import numpy as np
 import polars as pl
 import typer
 
@@ -24,6 +26,7 @@ from om_benchmarks.helpers.io.writer_configs import (
     ZarrConfig,
 )
 from om_benchmarks.helpers.modes import MetricMode, OpMode
+from om_benchmarks.helpers.mse import MSECache, mean_squared_error
 from om_benchmarks.helpers.plotting import (
     create_and_save_compression_ratio_chart,
     create_and_save_memory_usage_chart,
@@ -34,7 +37,7 @@ from om_benchmarks.helpers.plotting import (
 from om_benchmarks.helpers.results import BenchmarkResultsDF
 from om_benchmarks.helpers.schemas import BenchmarkRecord, BenchmarkStats
 from om_benchmarks.helpers.script_utils import get_era5_path_for_config, get_script_dirs
-from om_benchmarks.helpers.stats import _clear_cache, mean_squared_error, measure_memory, measure_time
+from om_benchmarks.helpers.stats import _clear_cache, measure_memory, measure_time
 
 app = AsyncTyper()
 
@@ -218,6 +221,7 @@ async def main(
 ):
     # Gather results
     results_dir, plots_dir = get_script_dirs(__file__)
+    mse_cache = MSECache(Path(results_dir / "mse_cache.json"))
 
     measure_func = measure_memory if mode == MetricMode.MEMORY else measure_time
 
@@ -292,10 +296,11 @@ async def main(
                     control_data = await (await format.reader_class.create(file_path.__str__())).read(
                         (slice(0, data_shape[0]), slice(0, data_shape[1]), slice(0, data_shape[2]))
                     )
-                    mse = mean_squared_error(control_data, data)
+                    data_mse = mean_squared_error(control_data, data)
                     del control_data
+                    mse_cache.set(file_path.__str__(), data_mse)
                     gc.collect()
-                    print(mse)
+                    print(data_mse)
 
                     write_stats = BenchmarkStats(
                         mean=statistics.mean(write_times) if write_times else 0.0,
@@ -315,6 +320,7 @@ async def main(
                         array_shape=data.shape,
                         read_index=None,
                         iterations=iterations,
+                        data_mse=data_mse,
                     )
                     bm_results.append(write_result)
 
@@ -376,6 +382,7 @@ async def main(
                             array_shape=data_shape,
                             read_index=read_length,
                             iterations=iterations,
+                            data_mse=mse_cache.get(file_path.__str__()),
                         )
                         bm_results.append(result)
                         gc.collect()
