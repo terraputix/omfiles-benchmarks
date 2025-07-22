@@ -3,8 +3,8 @@ import os
 import cdsapi
 import typer
 
-from om_benchmarks.helpers.AsyncTyper import AsyncTyper
-from om_benchmarks.helpers.era5 import configure_era5_request
+from om_benchmarks.AsyncTyper import AsyncTyper
+from om_benchmarks.era5 import configure_era5_request
 
 app = AsyncTyper()
 

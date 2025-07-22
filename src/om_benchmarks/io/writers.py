@@ -12,7 +12,7 @@ import omfiles as om
 import zarr
 import zarr.storage
 
-from om_benchmarks.helpers.io.writer_configs import (
+from om_benchmarks.io.writer_configs import (
     BaselineConfig,
     FormatWriterConfig,
     HDF5Config,

@@ -3,9 +3,9 @@ from typing import Literal, Optional, Tuple
 
 import polars as pl
 
-from om_benchmarks.helpers.formats import AvailableFormats
-from om_benchmarks.helpers.io.writer_configs import FormatWriterConfig
-from om_benchmarks.helpers.modes import OpMode
+from om_benchmarks.formats import AvailableFormats
+from om_benchmarks.io.writer_configs import FormatWriterConfig
+from om_benchmarks.modes import OpMode
 
 BENCHMARK_SCHEMA = pl.Schema(
     {

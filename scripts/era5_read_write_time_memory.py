@@ -13,10 +13,10 @@ import numcodecs.zarr3
 import polars as pl
 import typer
 
-from om_benchmarks.helpers.AsyncTyper import AsyncTyper
-from om_benchmarks.helpers.era5 import read_era5_data_to_temporal
-from om_benchmarks.helpers.formats import AvailableFormats
-from om_benchmarks.helpers.io.writer_configs import (
+from om_benchmarks.AsyncTyper import AsyncTyper
+from om_benchmarks.era5 import read_era5_data_to_temporal
+from om_benchmarks.formats import AvailableFormats
+from om_benchmarks.io.writer_configs import (
     BaselineConfig,
     FormatWriterConfig,
     HDF5Config,
@@ -24,19 +24,19 @@ from om_benchmarks.helpers.io.writer_configs import (
     OMConfig,
     ZarrConfig,
 )
-from om_benchmarks.helpers.modes import MetricMode, OpMode
-from om_benchmarks.helpers.mse import MSECache, mean_squared_error
-from om_benchmarks.helpers.plotting import (
+from om_benchmarks.modes import MetricMode, OpMode
+from om_benchmarks.mse import MSECache, mean_squared_error
+from om_benchmarks.plotting import (
     create_and_save_compression_ratio_chart,
     create_and_save_memory_usage_chart,
     create_and_save_perf_chart,
     create_scatter_size_vs_mode,
     plot_radviz_results,
 )
-from om_benchmarks.helpers.results import BenchmarkResultsDF
-from om_benchmarks.helpers.schemas import BenchmarkRecord, BenchmarkStats
-from om_benchmarks.helpers.script_utils import get_era5_path_for_config, get_script_dirs
-from om_benchmarks.helpers.stats import _clear_cache, measure_memory, measure_time
+from om_benchmarks.results import BenchmarkResultsDF
+from om_benchmarks.schemas import BenchmarkRecord, BenchmarkStats
+from om_benchmarks.script_utils import get_era5_path_for_config, get_script_dirs
+from om_benchmarks.stats import _clear_cache, measure_memory, measure_time
 
 app = AsyncTyper()
 
