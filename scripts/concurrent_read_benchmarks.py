@@ -5,7 +5,6 @@ import time
 from typing import List, Tuple
 
 import hdf5plugin
-import matplotlib.pyplot as plt
 import numcodecs
 import typer
 
@@ -18,8 +17,9 @@ from om_benchmarks.io.writer_configs import (
     OMConfig,
     ZarrConfig,
 )
+from om_benchmarks.plotting.concurrency_plots import plot_concurrency_scaling
 from om_benchmarks.read_indices import random_indices_for_read_range
-from om_benchmarks.script_utils import get_era5_path_for_config
+from om_benchmarks.script_utils import get_era5_path_for_config, get_script_dirs
 
 app = typer.Typer()
 
@@ -50,13 +50,6 @@ TEST_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
             compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
         ),
     ),
-    (
-        AvailableFormats.ZarrPythonViaZarrsCodecs,
-        ZarrConfig(
-            chunk_size=CHUNK_SIZE,
-            compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
     # NetCDF-Python will segfault when accessed concurrently: https://github.com/Unidata/netcdf4-python/issues/844
     # (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=CHUNK_SIZE, compression="zlib", compression_level=3)),
     (
@@ -73,13 +66,6 @@ TEST_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
 DATA_SHAPE = (721, 1440, 744)
 READ_RANGE = (20, 20, 20)  # needs to access at least 4 chunks!
 CONCURRENCY_LEVELS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
-
-
-async def concurrent_read_task(reader, read_index):
-    t0 = time.perf_counter()
-    _arr = await reader.read(read_index)
-    t1 = time.perf_counter()
-    return t1 - t0
 
 
 def parallel_read_task(reader_class, file_path, read_index):
@@ -101,77 +87,28 @@ def run_parallel_reads(reader_class, file_path, num_parallel):
     return results
 
 
-async def run_concurrent_reads(reader_class, file_path, read_index, num_concurrent):
-    # Launch N concurrent read tasks
-    reader = await reader_class.create(str(file_path))
-    tasks = [concurrent_read_task(reader, read_index) for _ in range(num_concurrent)]
-    results = await asyncio.gather(*tasks)
-    reader.close()
-    return results  # List of latencies
-
-
 @app.command()
 def main():
+    _, plots_dir = get_script_dirs(__file__)
+
+    # {formats: {concurrency: [latencies]}}
+    results: dict[AvailableFormats, dict[int, list[float]]] = {}
+
     for format, config in TEST_FORMATS:
+        format_results = results.get(format, {})
         file_path = get_era5_path_for_config(format, config)
         print(f"\nBenchmarking {format.name} scaling...")
 
-        results = []
         for concurrency in CONCURRENCY_LEVELS:
             latencies = run_parallel_reads(format.reader_class, file_path, concurrency)
             mean_latency = statistics.mean(latencies)
-            median_latency = statistics.median(latencies)
-            std_latency = statistics.stdev(latencies) if len(latencies) > 1 else 0.0
             throughput = concurrency / mean_latency if mean_latency > 0 else 0
-            results.append(
-                {
-                    "concurrency": concurrency,
-                    "mean_latency": mean_latency,
-                    "median_latency": median_latency,
-                    "std_latency": std_latency,
-                    "throughput": throughput,
-                    "latencies": latencies,
-                }
-            )
+            format_results[concurrency] = latencies
             print(f"Concurrency {concurrency}: mean latency {mean_latency:.4f}s, throughput {throughput:.2f} req/s")
+        results[format] = format_results
 
-        # Plot throughput and latency
-        conc = [r["concurrency"] for r in results]
-        thr = [r["throughput"] for r in results]
-        mean_lat = [r["mean_latency"] for r in results]
-        median_lat = [r["median_latency"] for r in results]
-
-        plt.figure(figsize=(10, 5))
-        ax = plt.subplot(1, 2, 1)
-        plt.plot(conc, thr, marker="o")
-        plt.xlabel("Concurrency")
-        ax.set_yscale("log", base=2)
-        ax.set_xscale("log", base=2)
-        plt.ylabel("Throughput (req/s)")
-        plt.title(f"{format.name} Throughput Scaling")
-
-        ax = plt.subplot(1, 2, 2)
-        plt.plot(conc, mean_lat, marker="o", label="Mean")
-        plt.plot(conc, median_lat, marker="x", label="Median")
-        plt.xlabel("Concurrency")
-        plt.ylabel("Latency (s)")
-        ax.set_yscale("log", base=2)
-        ax.set_xscale("log", base=2)
-        plt.title(f"{format.name} Latency Scaling")
-        plt.legend()
-
-        plt.tight_layout()
-        plt.savefig(f"{format.name}_scaling.png")
-        # plt.show()
-
-        # Optional: Latency distribution as boxplot
-        plt.figure(figsize=(8, 5))
-        plt.boxplot([r["latencies"] for r in results], positions=conc)
-        plt.xlabel("Concurrency")
-        plt.ylabel("Latency (s)")
-        plt.title(f"{format.name} Latency Distribution")
-        plt.savefig(f"{format.name}_latency_boxplot.png")
-        # plt.show()
+    plot_concurrency_scaling(results, plots_dir)
+    # plot_latencies(results, plots_dir)
 
 
 if __name__ == "__main__":
