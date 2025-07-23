@@ -25,7 +25,7 @@ from om_benchmarks.io.writer_configs import (
 )
 from om_benchmarks.modes import MetricMode, OpMode
 from om_benchmarks.mse import MSECache, mean_squared_error
-from om_benchmarks.plotting import (
+from om_benchmarks.plotting.read_write_plots import (
     create_and_save_compression_factor_chart,
     create_and_save_memory_usage_chart,
     create_and_save_perf_chart,
@@ -54,6 +54,7 @@ read_ranges: list[tuple[int, int, int]] = [
 
 chunk_sizes = {
     "small": (5, 5, 744),
+    "balanced": (32, 32, 32),
     "medium": (10, 10, 744),
     "large": (20, 20, 744),
     "xtra_large": (40, 40, 744),
@@ -168,21 +169,21 @@ READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
         AvailableFormats.Zarr,
         ZarrConfig(
             chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
+            compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
         ),
     ),
     (
         AvailableFormats.ZarrTensorStore,
         ZarrConfig(
             chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
+            compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
         ),
     ),
     (
         AvailableFormats.ZarrPythonViaZarrsCodecs,
         ZarrConfig(
             chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="lz4", clevel=6, shuffle=numcodecs.Blosc.BITSHUFFLE),
+            compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
         ),
     ),
     (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression="zlib", compression_level=3)),
