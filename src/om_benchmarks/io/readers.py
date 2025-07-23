@@ -167,6 +167,20 @@ class ZarrReader(BaseReader):
 
     @classmethod
     async def create(cls, filename: str):
+        zarr.config.set(
+            {
+                "threading.num_workers": 1,
+                # # "array.write_empty_chunks": False,
+                # "codec_pipeline": {
+                #     "path": "zarrs.ZarrsCodecPipeline",
+                #     # "validate_checksums": True,
+                #     # "store_empty_chunks": False,
+                #     # "chunk_concurrent_minimum": 4,
+                #     # "chunk_concurrent_maximum": 1,
+                #     "batch_size": 1,
+                # },
+            }
+        )
         self = await super().create(filename)
         zarr.config.set({"threading.max_workers": 8})
         z = zarr.open(str(self.filename), mode="r")
@@ -183,6 +197,7 @@ class ZarrReader(BaseReader):
         return self.zarr_reader[index].__array__()
 
     def close(self) -> None:
+        zarr.config.reset()  # reset the config to its original state
         self.zarr_reader.store.close()
 
     @property
