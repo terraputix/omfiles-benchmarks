@@ -50,14 +50,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Range { start: 0, end: x },
     ];
 
+    let mut _data_len = 0;
     // Run iterations
     for _ in 0..iterations {
+        let start = std::time::Instant::now();
+
         // Read the data
-        let data = om_file.read::<f32>(&read_range, None, None)?;
+        let _data = om_file.read::<f32>(&read_range, None, None)?;
 
         // Access data to ensure it's fully read
-        let total_elements = data.len();
-        println!("Total elements: {}", total_elements);
+        _data_len = _data.len();
+
+        let elapsed = start.elapsed();
+        println!("{:.6}", elapsed.as_secs_f64());
     }
 
     // File is automatically closed when om_file goes out of scope

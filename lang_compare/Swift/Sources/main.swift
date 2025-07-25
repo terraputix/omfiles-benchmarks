@@ -40,28 +40,19 @@ struct OmBenchmark: AsyncParsableCommand {
         ]
 
         // Run iterations
-        var totalReadTime: TimeInterval = 0
+        var dataLen = 0
 
-        for _ in 1...iterations {
+        for _ in 0..<iterations {
             let startTime = Date()
 
             // Read the data
             let data: [Float] = try await reader.read(range: ranges)
 
-            let endTime = Date()
-            let iterationTime = endTime.timeIntervalSince(startTime)
-            totalReadTime += iterationTime
-
             // Access data to ensure it's fully read
-            let totalElements = data.count
-            print("Total elements read: \(totalElements)")
+            dataLen = data.count
+
+            let elapsed = Date().timeIntervalSince(startTime)
+            print(String(format: "%.6f", elapsed))
         }
-
-        // Print summary statistics
-        let avgTime = totalReadTime / Double(iterations)
-        print("Summary: \(iterations) iterations, avg time: \(String(format: "%.6f", avgTime))s")
-
-        // Print in a format easily parseable by the Python script
-        print("BENCHMARK_RESULT: \(avgTime)")
     }
 }
