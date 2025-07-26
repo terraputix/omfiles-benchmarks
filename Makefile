@@ -8,29 +8,29 @@ all: rust swift typescript
 # Rust implementation
 rust:
 	@echo "Building Rust implementation..."
-	cd other_languages/rust && cargo build --release
+	cd lang_compare/rust && cargo build --release
 
 clean-rust:
 	@echo "Cleaning Rust implementation..."
-	cd other_languages/rust && cargo clean
+	cd lang_compare/rust && cargo clean
 
 # Swift implementation
 swift:
 	@echo "Building Swift implementation..."
-	cd other_languages/Swift && swift build -c release
+	cd lang_compare/Swift && swift build -c release
 
 clean-swift:
 	@echo "Cleaning Swift implementation..."
-	cd other_languages/Swift && rm -rf .build
+	cd lang_compare/Swift && rm -rf .build
 
 # TypeScript implementation
 typescript:
 	@echo "Building TypeScript implementation..."
-	cd other_languages/typescript && npm install
+	cd lang_compare/typescript && npm install
 
 clean-typescript:
 	@echo "Cleaning TypeScript implementation..."
-	cd other_languages/typescript && rm -rf node_modules
+	cd lang_compare/typescript && rm -rf node_modules
 
 # Clean all implementations
 clean: clean-rust clean-swift clean-typescript
