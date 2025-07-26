@@ -10,11 +10,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 import seaborn as sns
-from matplotlib.ticker import FuncFormatter
 
 from om_benchmarks.formats import AvailableFormats
-from om_benchmarks.modes import MetricMode, OpMode, format_bytes, format_time
+from om_benchmarks.modes import MetricMode, OpMode
 from om_benchmarks.parse_tuple import pretty_read_index
+from om_benchmarks.plotting.formatters import BYTES_FORMATTER, TIME_FORMATTER
 from om_benchmarks.plotting.params import _set_matplotlib_behaviour
 
 _set_matplotlib_behaviour()
@@ -187,7 +187,7 @@ def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str 
             ax.bar(labels, mean_times, color=bar_colors, edgecolor="white", linewidth=0.5)
             ax.set_xlabel("Format (Compression)")
             ax.set_ylabel("Mean Time")
-            ax.yaxis.set_major_formatter(FuncFormatter(format_time))
+            ax.yaxis.set_major_formatter(TIME_FORMATTER)
             ax.tick_params(axis="x", rotation=60)
 
             add_info_box(ax, chunk_shape, read_index)
@@ -234,7 +234,7 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
             ax.bar(labels, memory_usages, color=bar_colors, edgecolor="white", linewidth=0.5)
             ax.set_xlabel("Format (Compression)")
             ax.set_ylabel("Memory Usage (bytes)")
-            ax.yaxis.set_major_formatter(FuncFormatter(format_bytes))
+            ax.yaxis.set_major_formatter(BYTES_FORMATTER)
             ax.tick_params(axis="x", rotation=60, labelsize=8)
             ax.tick_params(axis="y", labelsize=8)
             ax.grid(True, alpha=0.3, axis="y")
@@ -348,8 +348,8 @@ def create_scatter_size_vs_mode(
             ax.set_xlabel("Compression Factor")
             ax.set_ylabel(mode.y_label)
             ax.set_yscale("log", base=mode.log_base)
-            ax.yaxis.set_major_formatter(FuncFormatter(mode.target_values_formatter))
-            # ax.yaxis.set_minor_formatter(FuncFormatter(mode.target_values_formatter))
+            ax.yaxis.set_major_formatter(mode.target_values_formatter)
+            # ax.yaxis.set_minor_formatter(mode.target_values_formatter)
             ax.minorticks_on()
             # ax.grid(which="minor", alpha=0.2)
             if operation == OpMode.READ:
@@ -460,7 +460,7 @@ def create_violin_plot(
             ax.set_xlabel(mode.y_label)
             ax.set_ylabel("Format (Compression)")
             ax.set_title(f"{operation.value.title()} - Read Index: {str(read_index)}")
-            ax.xaxis.set_major_formatter(FuncFormatter(mode.target_values_formatter))
+            ax.xaxis.set_major_formatter(mode.target_values_formatter)
             # ax.set_xscale("log", base=mode.log_base)
 
     title = f"Distribution of {mode.vs_title} by Format"

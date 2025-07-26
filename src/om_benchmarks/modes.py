@@ -1,6 +1,6 @@
 from enum import Enum
 
-from om_benchmarks.plotting.formatters import format_bytes, format_time
+from om_benchmarks.plotting.formatters import BYTES_FORMATTER, TIME_FORMATTER
 
 
 class OpMode(str, Enum):
@@ -24,9 +24,9 @@ class MetricMode(str, Enum):
     @property
     def target_values_formatter(self):
         if self == MetricMode.MEMORY:
-            return format_bytes
+            return BYTES_FORMATTER
         elif self == MetricMode.TIME:
-            return format_time
+            return TIME_FORMATTER
         else:
             raise ValueError(f"Unknown metric mode: {self}")
 

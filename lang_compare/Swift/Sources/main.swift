@@ -9,17 +9,17 @@ struct OmBenchmark: AsyncParsableCommand {
     @Argument(help: "Path to OM file")
     var filePath: String
 
-    @Argument(help: "T dimension to read (optional, defaults to max)")
-    var t: UInt64?
+    @Argument(help: "X dimension to read (optional, defaults to max)")
+    var x: UInt64
 
     @Argument(help: "Y dimension to read (optional, defaults to max)")
-    var y: UInt64?
+    var y: UInt64
 
-    @Argument(help: "X dimension to read (optional, defaults to max)")
-    var x: UInt64?
+    @Argument(help: "T dimension to read (optional, defaults to max)")
+    var t: UInt64
 
-    @Argument(help: "Number of iterations to run")
-    var iterations: Int = 1
+    @Argument(help: "Number of iterations to run (optional, defaults to 1)")
+    var iterations: UInt64
 
     // MARK: - Run Benchmark
     func run() async throws {
@@ -27,31 +27,33 @@ struct OmBenchmark: AsyncParsableCommand {
         let reader = try await OmFileReader(file: filePath).asArray(of: Float.self)!
         let dims = reader.getDimensions()
 
-        // Use provided dimensions or defaults
-        let tValue = t ?? dims[0]
-        let yValue = y ?? dims[1]
-        let xValue = x ?? dims[2]
+        // Compute max offsets for each dimension
+        let xMax = dims[0] > x ? dims[0] - x : 0
+        let yMax = dims[1] > y ? dims[1] - y : 0
+        let tMax = dims[2] > t ? dims[2] - t : 0
 
-        // Create read selection
-        let ranges = [
-            0..<tValue,
-            0..<yValue,
-            0..<xValue,
-        ]
+        // Prepare all read selections
+        var readSelections: [[Range<UInt64>]] = []
+        for i in 0..<iterations {
+            let xStart = xMax == 0 ? 0 : i % xMax
+            let yStart = yMax == 0 ? 0 : i % yMax
+            let tStart = tMax == 0 ? 0 : i % tMax
+            readSelections.append([
+                xStart..<(xStart + x),
+                yStart..<(yStart + y),
+                tStart..<(tStart + t),
+            ])
+        }
 
-        // Run iterations
         var dataLen = 0
-
-        for _ in 0..<iterations {
+        for ranges in readSelections {
             let startTime = Date()
-
             // Read the data
             let data: [Float] = try await reader.read(range: ranges)
-
+            let elapsed = Date().timeIntervalSince(startTime)
             // Access data to ensure it's fully read
             dataLen = data.count
 
-            let elapsed = Date().timeIntervalSince(startTime)
             print(String(format: "%.6f", elapsed))
         }
     }

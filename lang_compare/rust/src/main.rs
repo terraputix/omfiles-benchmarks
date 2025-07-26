@@ -10,61 +10,71 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .required(true)
                 .help("Path to OM file"),
         )
-        .arg(Arg::with_name("T").help("T dimension to read"))
-        .arg(Arg::with_name("Y").help("Y dimension to read"))
-        .arg(Arg::with_name("X").help("X dimension to read"))
-        .arg(Arg::with_name("ITERATIONS").help("Number of iterations"))
+        .arg(
+            Arg::with_name("X")
+                .required(true)
+                .help("X dimension to read (optional, defaults to max)"),
+        )
+        .arg(
+            Arg::with_name("Y")
+                .required(true)
+                .help("Y dimension to read (optional, defaults to max)"),
+        )
+        .arg(
+            Arg::with_name("T")
+                .required(true)
+                .help("T dimension to read (optional, defaults to max)"),
+        )
+        .arg(
+            Arg::with_name("ITERATIONS")
+                .required(true)
+                .help("Number of iterations to run (optional, defaults to 1)"),
+        )
         .get_matches();
 
-    // Get file path
+    // Get file path and arguments
     let file_path = matches.value_of("FILE").unwrap();
+    let x = matches.value_of("X").unwrap().parse::<u64>().unwrap();
+    let y = matches.value_of("Y").unwrap().parse::<u64>().unwrap();
+    let t = matches.value_of("T").unwrap().parse::<u64>().unwrap();
+    let iterations = matches
+        .value_of("ITERATIONS")
+        .unwrap()
+        .parse::<u64>()
+        .unwrap();
 
     // Open the OM file
     let om_file = OmFileReader::from_file(file_path)?;
     let dims = om_file.get_dimensions();
 
-    // Default to full dimensions if not specified
-    let mut t = dims[0];
-    let mut y = dims[1];
-    let mut x = dims[2];
-    let mut iterations = 1;
+    // Compute max offsets for each dimension
+    let x_max = if dims[0] > x { dims[0] - x } else { 0 };
+    let y_max = if dims[1] > y { dims[1] - y } else { 0 };
+    let t_max = if dims[2] > t { dims[2] - t } else { 0 };
 
-    // Parse dimensions if provided
-    if let Some(t_str) = matches.value_of("T") {
-        t = t_str.parse::<u64>().unwrap_or(dims[0]);
+    // Prepare all read selections
+    let mut read_selections: Vec<Vec<Range<u64>>> = Vec::new();
+    for i in 0..iterations {
+        let x_start = if x_max == 0 { 0 } else { i % x_max };
+        let y_start = if y_max == 0 { 0 } else { i % y_max };
+        let t_start = if t_max == 0 { 0 } else { i % t_max };
+        read_selections.push(vec![
+            x_start..(x_start + x),
+            y_start..(y_start + y),
+            t_start..(t_start + t),
+        ]);
     }
-    if let Some(y_str) = matches.value_of("Y") {
-        y = y_str.parse::<u64>().unwrap_or(dims[1]);
-    }
-    if let Some(x_str) = matches.value_of("X") {
-        x = x_str.parse::<u64>().unwrap_or(dims[2]);
-    }
-    if let Some(iter_str) = matches.value_of("ITERATIONS") {
-        iterations = iter_str.parse::<usize>().unwrap_or(1);
-    }
-
-    // Create read selection
-    let read_range = vec![
-        Range { start: 0, end: t },
-        Range { start: 0, end: y },
-        Range { start: 0, end: x },
-    ];
 
     let mut _data_len = 0;
-    // Run iterations
-    for _ in 0..iterations {
+    for ranges in read_selections {
         let start = std::time::Instant::now();
-
         // Read the data
-        let _data = om_file.read::<f32>(&read_range, None, None)?;
-
-        // Access data to ensure it's fully read
-        _data_len = _data.len();
-
+        let data = om_file.read::<f32>(&ranges, None, None)?;
         let elapsed = start.elapsed();
+        // Access data to ensure it's fully read
+        _data_len = data.len();
         println!("{:.6}", elapsed.as_secs_f64());
     }
 
-    // File is automatically closed when om_file goes out of scope
     Ok(())
 }
