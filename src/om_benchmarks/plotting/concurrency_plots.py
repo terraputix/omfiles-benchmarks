@@ -13,8 +13,8 @@ _set_matplotlib_behaviour()
 def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, list[float]]], output_dir: Path):
     ncols: int = 2
     nrows: int = len(results)
-    fig, axes = plt.subplots(ncols=ncols, nrows=nrows, figsize=(10, 5 * nrows), squeeze=False)
-    plt.subplots_adjust(hspace=0.2, wspace=0.15, top=0.95)
+    fig, axes = plt.subplots(ncols=ncols, nrows=nrows, figsize=(10, 4 * nrows), squeeze=False)
+    plt.subplots_adjust(hspace=0.25, wspace=0.2, top=0.94)
     for i, (format, res) in enumerate(results.items()):
         ax1: matplotlib.axes.Axes = axes[i, 0]
         ax2: matplotlib.axes.Axes = axes[i, 1]
@@ -42,7 +42,7 @@ def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, list[floa
         ax2.set_yscale("log", base=10)
         ax2.minorticks_on()
         ax2.set_title(f"{format.name} Latency Scaling")
-        ax2.legend()
+        ax2.legend(frameon=True, fancybox=True)
 
     fig.suptitle("Concurrency Scaling of Latency and Throughput")
     # plt.tight_layout()

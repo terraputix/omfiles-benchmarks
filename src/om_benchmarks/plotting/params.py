@@ -34,7 +34,6 @@ def _set_matplotlib_behaviour():
             "figure.facecolor": "white",
             "savefig.bbox": "tight",
             "savefig.dpi": 600,
-            # "savefig.facecolor": "white",  # optional, but recommended for consistency
             "figure.subplot.wspace": 0.35,
             "figure.subplot.hspace": 0.35,
         }
