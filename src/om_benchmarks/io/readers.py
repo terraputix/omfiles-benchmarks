@@ -168,7 +168,6 @@ class ZarrReader(BaseReader):
     @classmethod
     async def create(cls, filename: str):
         self = await super().create(filename)
-        zarr.config.set({"threading.max_workers": 8})
         z = zarr.open(str(self.filename), mode="r")
         if not isinstance(z, zarr.Group):
             raise TypeError("Expected a zarr Group")
