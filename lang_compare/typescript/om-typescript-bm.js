@@ -57,12 +57,20 @@ async function main() {
       { start: 0, end: x },
     ];
 
+    let dataLen = 0;
+
     for (let i = 0; i < iterations; i++) {
+      const startTime = process.hrtime();
+
       // Read the specified slice
       const data = await reader.read(OmDataType.FloatArray, ranges);
-      // Just accessing data to ensure it's fully read
-      const totalElements = data.length;
-      console.log(`Total elements: ${totalElements}`);
+
+      // Access data to ensure it's fully read
+      dataLen = data.length;
+
+      const elapsedHr = process.hrtime(startTime);
+      const elapsed = elapsedHr[0] + elapsedHr[1] / 1e9;
+      console.log(elapsed.toFixed(6));
     }
 
     // Close the file
