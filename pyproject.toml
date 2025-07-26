@@ -12,7 +12,7 @@ dependencies = [
     # pin zarr3 because of compressor issues:
     # https://github.com/zarr-developers/zarr-python/issues/2900
     "zarr==3.0.3",
-    # "zarrs",
+    "zarrs",
     "tensorstore",
     "polars",
     "altair",

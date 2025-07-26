@@ -774,6 +774,7 @@ dependencies = [
     { name = "typer" },
     { name = "vl-convert-python" },
     { name = "zarr" },
+    { name = "zarrs" },
 ]
 
 [package.dev-dependencies]
@@ -802,6 +803,7 @@ requires-dist = [
     { name = "typer", specifier = ">=0.16.0" },
     { name = "vl-convert-python" },
     { name = "zarr", specifier = "==3.0.3" },
+    { name = "zarrs" },
 ]
 
 [package.metadata.requires-dev]
@@ -1401,4 +1403,27 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ee/49/f140566c2849f6275e5d13f5eed3556e0337d190b593998ca21a6120e612/zarr-3.0.3.tar.gz", hash = "sha256:d63d62b7a0461f01541b01b40a50fb48e65dc8ff054c62f4816d87b14c546f0b", size = 225758, upload-time = "2025-02-14T23:30:42.834Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0e/41/36a8b385c1523957f267172151978eb3ed37b53c8dc6db43e4e160d6d8b6/zarr-3.0.3-py3-none-any.whl", hash = "sha256:273a4de88d03769eb8cca7c7e882d697d7f5c3e40377654eeb49f1c38976808b", size = 187034, upload-time = "2025-02-14T23:30:40.685Z" },
+]
+
+[[package]]
+name = "zarrs"
+version = "0.1.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "zarr" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/57/0122080bd3f7aec466f7f7d3e754b760c194e7c63708a09fcbeff97a0cc6/zarrs-0.1.5.tar.gz", hash = "sha256:7170a5d96e4f38000853495e338451e0df92db84b5027fc42d6b37fff1abd6f3", size = 59821, upload-time = "2025-07-04T22:08:48.363Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/d1/f1bb9c476f400da30c125ecf4eb0b1321431da8af1402a38208fa12dc84d/zarrs-0.1.5-cp311-abi3-macosx_10_12_x86_64.whl", hash = "sha256:3991468f83754903824411f43a4d94468b3520b83f1d32112766e4c40523b06d", size = 4112580, upload-time = "2025-07-04T22:08:28.732Z" },
+    { url = "https://files.pythonhosted.org/packages/58/51/25a8e7af2c693213c90387f45e2e1d8e5393cabd4148a87e03237f986676/zarrs-0.1.5-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:2ca7f4a4abc52834e92ddc28164ab12f049ab577a2200bc4536f6211a5ae091a", size = 3737511, upload-time = "2025-07-04T22:08:30.527Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/e1/161ba25c82b0c6ac5cd9fa985349c0c458437961a55a40373d30d5103db1/zarrs-0.1.5-cp311-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:e15d9f6dcbf64ec0b23a3d8581469ccab1d8418089d65d0c60f2b6a902e9d073", size = 4023133, upload-time = "2025-07-04T22:08:32.138Z" },
+    { url = "https://files.pythonhosted.org/packages/48/a0/bd2b392b13264693898f6c16130d24f5f1680d5a7984d40c0a03527101db/zarrs-0.1.5-cp311-abi3-manylinux_2_28_armv7l.whl", hash = "sha256:3619d8aff4c85e0601501c798323bb7e8a13b13013e8bd549751ca01ecaa3ab2", size = 3871543, upload-time = "2025-07-04T22:08:33.878Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/4f/f1e7d9cf9a68dc86ca1f4c45c116c67f093c660b15ff94d5520218c28a09/zarrs-0.1.5-cp311-abi3-manylinux_2_28_ppc64le.whl", hash = "sha256:ad4857d96805e2bcf65303536b53735918ce652e717dc49b44be95be3441e8dd", size = 4424743, upload-time = "2025-07-04T22:08:35.54Z" },
+    { url = "https://files.pythonhosted.org/packages/24/78/19b411c80e85267f90ac649b605c0e11431064533646c24747c788b37039/zarrs-0.1.5-cp311-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:7d6c7a05cd74ff909cc9f5a8fd173d7694891e7da04003eaedf01762b5fc93ec", size = 4293236, upload-time = "2025-07-04T22:08:37.171Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/13/a07ffccc3b162d9ff2c42857731870b884f9fc3c0d046a1da358018c3392/zarrs-0.1.5-cp311-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:555b28fa539246bc351f8c0dab82bdf1a4d30c9a786412796096fe46fd22b981", size = 10127941, upload-time = "2025-07-04T22:08:38.941Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/2b/9caeabb618060be86dce80c289db2144ee2bc849cbe1e4c739e3a7566990/zarrs-0.1.5-cp311-abi3-musllinux_1_2_armv7l.whl", hash = "sha256:23ec6c1aabc92652a9eb1354c05a7ff222c562d7c9daec239209789ebd7ee5e0", size = 9974753, upload-time = "2025-07-04T22:08:41.149Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/e9/9e24cfce3ae3f552afd89f5321f5e0321b94f43be9c7365f4da552528119/zarrs-0.1.5-cp311-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:8a00a55928a3bd3a4b8b86a2343cf804f47626d21d749a5c65b0daae605e9363", size = 10617171, upload-time = "2025-07-04T22:08:43.425Z" },
+    { url = "https://files.pythonhosted.org/packages/a5/c8/23525bff7d341e787a9d5c8686fa0b58386edb96f508c79d6083f14f3b4b/zarrs-0.1.5-cp311-abi3-win32.whl", hash = "sha256:78db1fb9d9e1ee57ec9a8ceaa43b75f723b9621573e46d9c90a7380ed11e643a", size = 3299283, upload-time = "2025-07-04T22:08:45.422Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/06/7f412aec152a69d82da1509aef90de489a8e03f191b0c0e081bf68e464a0/zarrs-0.1.5-cp311-abi3-win_amd64.whl", hash = "sha256:9dfff1be8b2d4fe57ec84aaf741d1d37c403301771f5968d5a30805dd5ebe9d9", size = 3765231, upload-time = "2025-07-04T22:08:46.774Z" },
 ]

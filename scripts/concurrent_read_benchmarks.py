@@ -36,6 +36,13 @@ TEST_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
             compression=hdf5plugin.Blosc(cname="lz4", clevel=4, shuffle=hdf5plugin.Blosc.SHUFFLE),
         ),
     ),
+    # (
+    #     AvailableFormats.ZarrPythonViaZarrsCodecs,
+    #     ZarrConfig(
+    #         chunk_size=CHUNK_SIZE,
+    #         compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
+    #     ),
+    # ),
     (
         AvailableFormats.Zarr,
         ZarrConfig(
