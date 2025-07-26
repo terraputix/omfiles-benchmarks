@@ -1,7 +1,6 @@
 import asyncio
 import os
 import platform
-import statistics
 import subprocess
 import tempfile
 import time
@@ -9,8 +8,6 @@ from functools import partial, wraps
 from typing import Any, Awaitable, Callable, Coroutine, List, NamedTuple, Union
 
 import memray
-
-from om_benchmarks.schemas import BenchmarkStats
 
 
 class TimeMeasurement(NamedTuple):
@@ -129,36 +126,3 @@ def _clear_cache():
         subprocess.call(["sudo", "sh", "-c", "sync; echo 3 > /proc/sys/vm/drop_caches"])
     else:
         raise Exception("Unsupported platform")
-
-
-async def run_multiple_benchmarks(
-    time_measurement: Callable[[], Awaitable[TimeMeasurement]],
-    memory_measurement: Callable[[], Awaitable[MemoryMeasurement]],
-    time_iterations: int = 5,
-    memory_iterations: int = 1,
-    clear_cache: bool = False,
-) -> BenchmarkStats:
-    times: List[float] = []
-    cpu_times: List[float] = []
-    memory_usages: List[float] = []
-
-    for _ in range(time_iterations):
-        if clear_cache:
-            _clear_cache()
-        result = await time_measurement()
-        times.append(result.elapsed)
-        cpu_times.append(result.cpu_elapsed)
-
-    for _ in range(memory_iterations):
-        result = await memory_measurement()
-        memory_usages.append(result.memory_total_allocations)
-
-    return BenchmarkStats(
-        mean=statistics.mean(times),
-        std=statistics.stdev(times) if len(times) > 1 else 0.0,
-        min=min(times),
-        max=max(times),
-        cpu_mean=statistics.mean(cpu_times),
-        cpu_std=statistics.stdev(cpu_times) if len(cpu_times) > 1 else 0.0,
-        memory_usage=statistics.mean(memory_usages) if len(memory_usages) >= 1 else 0.0,
-    )

@@ -382,7 +382,7 @@ async def main(
         results_df = BenchmarkResultsDF(
             results_dir,
             all_runs_name="benchmark_results_all.parquet",
-            current_run_name=f"benchmark_results_{chunk_size}_{op_mode.value}.parquet",
+            current_run_name=f"benchmark_results_{chunk_size}_{op_mode.value}_{mode.value}.parquet",
         )
         if not plot_only:
             results_df.append(bm_results)
