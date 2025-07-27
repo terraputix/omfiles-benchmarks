@@ -60,6 +60,21 @@ class AvailableFormats(Enum):
             raise ValueError(f"No writer available for format: {self.name}")
         return _writer_classes[self]
 
+    @property
+    def scatter_plot_marker(self) -> str:
+        """Get marker symbol for a format."""
+        marker_map: dict[AvailableFormats, str] = {
+            AvailableFormats.HDF5: "o",
+            AvailableFormats.HDF5Hidefix: "s",
+            AvailableFormats.Zarr: "D",
+            AvailableFormats.ZarrTensorStore: "^",
+            AvailableFormats.ZarrPythonViaZarrsCodecs: "v",
+            AvailableFormats.NetCDF: "P",
+            AvailableFormats.OM: "*",
+            AvailableFormats.Baseline: "X",
+        }
+        return marker_map[self]
+
 
 _writer_classes: Dict[AvailableFormats, Type[BaseWriter]] = {
     AvailableFormats.HDF5: HDF5Writer,

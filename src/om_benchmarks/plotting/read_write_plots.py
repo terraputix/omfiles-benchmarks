@@ -32,21 +32,6 @@ def _get_label(format: AvailableFormats, compression: Optional[str]) -> str:
     return f"{format.name} \n({normalize_compression(compression)})"
 
 
-def get_marker_for_format(fmt: AvailableFormats) -> str:
-    """Get marker symbol for a format."""
-    marker_map: dict[AvailableFormats, str] = {
-        AvailableFormats.HDF5: "o",
-        AvailableFormats.HDF5Hidefix: "s",
-        AvailableFormats.Zarr: "D",
-        AvailableFormats.ZarrTensorStore: "^",
-        AvailableFormats.ZarrPythonViaZarrsCodecs: "v",
-        AvailableFormats.NetCDF: "P",
-        AvailableFormats.OM: "*",
-        AvailableFormats.Baseline: "X",
-    }
-    return marker_map[fmt]
-
-
 # maps mse values to line widths
 line_width_mse_mapping: list[tuple[float, float]] = [
     (0.0, 0.2),
@@ -82,11 +67,10 @@ def get_marker_style(row_dict: dict[str, Any], color_map: dict[str, tuple[float,
     fmt = AvailableFormats(row_dict["format"])
     compression = normalize_compression(row_dict.get("compression"))
     label = _get_label(fmt, compression)
-    marker = get_marker_for_format(fmt)
     edgecolor, linewidth = edgecolor_and_linewidth(row_dict)
     color = color_map[compression]
     return {
-        "marker": marker,
+        "marker": fmt.scatter_plot_marker,
         "markerfacecolor": color,
         "markeredgecolor": edgecolor,
         "markeredgewidth": linewidth,
@@ -668,7 +652,7 @@ def plot_radviz_results(df: pl.DataFrame, save_dir: Path, file_name: str = "radv
     # Build color and marker maps
     unique_labels = df["label"].unique().to_list()
     color_map = get_color_palette(unique_labels)
-    marker_map = {label: get_marker_for_format(fmt) for label, fmt in format_to_label_map.items()}
+    marker_map = {label: fmt.scatter_plot_marker for label, fmt in format_to_label_map.items()}
 
     # Plot each subplot
     for idx, read_index in enumerate(read_indices):
