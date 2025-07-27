@@ -2,12 +2,12 @@ from matplotlib.ticker import FuncFormatter
 
 
 def format_bytes(x: float, pos: int) -> str:
-    """Format bytes into human readable format"""
-    for unit in ["B", "KB", "MB", "GB"]:
+    """Format bytes into human readable format using binary prefixes (KiB, MiB, GiB, TiB)"""
+    for unit in ["B", "KiB", "MiB", "GiB"]:
         if x < 1024.0:
             return f"{x:.1f}\\,{unit}"
         x /= 1024.0
-    return f"{x:.1f}\\,TB"
+    return f"{x:.1f}\\,TiB"
 
 
 def format_time(x: float, pos: int) -> str:
