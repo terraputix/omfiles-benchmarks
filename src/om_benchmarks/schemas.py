@@ -16,7 +16,8 @@ class BenchmarkStats:
     max: float
     cpu_mean: float
     cpu_std: float
-    memory_usage: float
+    memory_peak: float
+    memory_total_allocated: float
     samples: List[float]
     file_size: float = 0
 
@@ -37,7 +38,8 @@ BENCHMARK_SCHEMA = pl.Schema(
         "max_time": pl.Float64,
         "cpu_mean_time": pl.Float64,
         "cpu_std_time": pl.Float64,
-        "memory_usage_bytes": pl.Float64,
+        "memory_peak_bytes": pl.Float64,
+        "memory_total_allocated_bytes": pl.Float64,
         "file_size_bytes": pl.Int64,
         "samples": pl.List(pl.Float64),
     }
@@ -62,7 +64,8 @@ class BenchmarkRecord:
     max_time: float
     cpu_mean_time: float
     cpu_std_time: float
-    memory_usage_bytes: float
+    memory_peak_bytes: float
+    memory_total_allocated_bytes: float
     file_size_bytes: float
     samples: List[float]
 
@@ -94,7 +97,8 @@ class BenchmarkRecord:
             max_time=stats.max,
             cpu_mean_time=stats.cpu_mean,
             cpu_std_time=stats.cpu_std,
-            memory_usage_bytes=stats.memory_usage,
+            memory_peak_bytes=stats.memory_peak,
+            memory_total_allocated_bytes=stats.memory_total_allocated,
             file_size_bytes=stats.file_size,
             samples=stats.samples,
         )

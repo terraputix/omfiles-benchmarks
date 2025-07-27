@@ -61,7 +61,7 @@ class BenchmarkResultsDF:
                     pl.col("min_time").round(6).alias("min_s"),
                     pl.col("max_time").round(6).alias("max_s"),
                     pl.col("cpu_mean_time").round(6).alias("cpu_s"),
-                    (pl.col("memory_usage_bytes") / 1024).round(2).alias("memory_kb"),
+                    (pl.col("memory_peak_bytes") / 1024).round(2).alias("memory_kb"),
                     (pl.col("file_size_bytes") / (1024 * 1024)).round(2).alias("size_mb"),
                     pl.col("data_mse").round(6).alias("mse"),
                 ]

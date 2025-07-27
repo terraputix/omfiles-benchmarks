@@ -222,13 +222,13 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
                 (pl.col("operation") == operation)
                 & (pl.col("chunk_shape") == chunk_shape)
                 & (pl.col("read_index") == read_index)
-            ).sort("memory_usage_bytes", descending=True)
+            ).sort("memory_peak_bytes", descending=True)
 
             labels, memory_usages, bar_colors = [], [], []
             for row_dict in filtered_df.iter_rows(named=True):
                 label = _get_label(AvailableFormats(row_dict["format"]), row_dict.get("compression"))
                 labels.append(label)
-                memory_usages.append(row_dict["memory_usage_bytes"])
+                memory_usages.append(row_dict["memory_peak_bytes"])
                 bar_colors.append(color_map[normalize_compression(row_dict.get("compression"))])
 
             ax.bar(labels, memory_usages, color=bar_colors, edgecolor="white", linewidth=0.5)
@@ -629,8 +629,8 @@ def plot_radviz_results(df: pl.DataFrame, save_dir: Path, file_name: str = "radv
     df = add_compression_factor_column(df)
 
     # Define which columns to use for radviz
-    radviz_cols = ["compression_factor", "mean_time", "memory_usage_bytes"]
-    invert_cols = ["mean_time", "memory_usage_bytes"]
+    radviz_cols = ["compression_factor", "mean_time", "memory_peak_bytes"]
+    invert_cols = ["mean_time", "memory_peak_bytes"]
 
     # Remove rows with missing values in radviz columns
     mask = pl.col(radviz_cols[0]).is_not_null()

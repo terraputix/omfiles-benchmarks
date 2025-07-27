@@ -265,7 +265,8 @@ async def main(
                     # Run the write benchmark multiple times
                     write_times: List[float] = []
                     write_cpu_times: List[float] = []
-                    write_memory_usages: List[float] = []
+                    write_memory_peak: List[float] = []
+                    write_allocs: List[float] = []
 
                     for _ in range(iterations):
                         if clear_cache:
@@ -274,7 +275,8 @@ async def main(
                         result = await measured_write()
 
                         if mode == MetricMode.MEMORY:
-                            write_memory_usages.append(result.memory_total_allocations)  # type: ignore
+                            write_memory_peak.append(result.peak_memory)  # type: ignore
+                            write_allocs.append(result.total_allocations)  # type: ignore
                         else:
                             write_times.append(result.elapsed)  # type: ignore
                             write_cpu_times.append(result.cpu_elapsed)  # type: ignore
@@ -299,9 +301,10 @@ async def main(
                         max=max(write_times) if write_times else 0.0,
                         cpu_mean=statistics.mean(write_cpu_times) if write_cpu_times else 0.0,
                         cpu_std=statistics.stdev(write_cpu_times) if len(write_cpu_times) > 1 else 0.0,
-                        memory_usage=statistics.mean(write_memory_usages) if len(write_memory_usages) > 0 else 0.0,
+                        memory_peak=statistics.mean(write_memory_peak) if len(write_memory_peak) > 0 else 0.0,
+                        memory_total_allocated=statistics.mean(write_allocs) if len(write_allocs) > 0 else 0.0,
                         file_size=file_size,
-                        samples=write_times if mode == MetricMode.TIME else write_memory_usages,
+                        samples=write_times if mode == MetricMode.TIME else write_memory_peak,
                     )
                     write_result = BenchmarkRecord.from_benchmark_stats(
                         stats=write_stats,
@@ -325,7 +328,8 @@ async def main(
                     for read_length, indices in read_indices.items():
                         times: List[float] = []
                         cpu_times: List[float] = []
-                        memory_usages: List[float] = []
+                        memory_peak: List[float] = []
+                        memory_allocs: List[float] = []
                         file_size: int = 0
                         for i, read_index in enumerate(indices):
                             if clear_cache:
@@ -341,7 +345,8 @@ async def main(
                             try:
                                 if mode == MetricMode.MEMORY:
                                     result = await measured_read()
-                                    memory_usages.append(result.memory_total_allocations)  # type: ignore
+                                    memory_peak.append(result.peak_memory)  # type: ignore
+                                    memory_allocs.append(result.total_allocations)  # type: ignore
                                 else:
                                     result = await measured_read()
                                     times.append(result.elapsed)  # type: ignore
@@ -361,8 +366,9 @@ async def main(
                             max=max(times) if times else 0.0,
                             cpu_mean=statistics.mean(cpu_times) if times else 0.0,
                             cpu_std=statistics.stdev(cpu_times) if len(cpu_times) > 1 else 0.0,
-                            memory_usage=statistics.mean(memory_usages) if len(memory_usages) > 0 else 0.0,
-                            samples=times if mode == MetricMode.TIME else memory_usages,
+                            memory_peak=statistics.mean(memory_peak) if len(memory_peak) > 0 else 0.0,
+                            memory_total_allocated=statistics.mean(memory_allocs) if len(memory_allocs) > 0 else 0.0,
+                            samples=times if mode == MetricMode.TIME else memory_peak,
                             file_size=file_size,
                         )
 
