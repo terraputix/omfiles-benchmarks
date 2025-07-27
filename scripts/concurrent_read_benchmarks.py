@@ -75,7 +75,7 @@ READ_RANGE = (20, 20, 20)  # needs to access at least 4 chunks!
 CONCURRENCY_LEVELS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
 
 
-def parallel_read_task(reader_class, file_path, read_index):
+def parallel_read_task(reader_class, file_path, read_index) -> float:
     reader = asyncio.run(reader_class.create(str(file_path)))
     t0 = time.perf_counter()
     _arr = asyncio.run(reader.read(read_index))
@@ -84,14 +84,19 @@ def parallel_read_task(reader_class, file_path, read_index):
     return t1 - t0
 
 
-def run_parallel_reads(reader_class, file_path, num_parallel):
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_parallel) as executor:
+def run_parallel_reads(reader_class, file_path, num_parallel, min_iterations=500) -> list[float]:
+    latencies = []
+    while len(latencies) < min_iterations:
+        # Each batch gives num_parallel samples
         read_index = random_indices_for_read_range(READ_RANGE, DATA_SHAPE)
-        futures = [
-            executor.submit(parallel_read_task, reader_class, file_path, read_index) for _ in range(num_parallel)
-        ]
-        results = [f.result() for f in futures]
-    return results
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_parallel) as executor:
+            futures = [
+                executor.submit(parallel_read_task, reader_class, file_path, read_index) for _ in range(num_parallel)
+            ]
+            batch_results = [f.result() for f in futures]
+            latencies.extend(batch_results)
+
+    return latencies
 
 
 @app.command()
@@ -115,7 +120,6 @@ def main():
         results[format] = format_results
 
     plot_concurrency_scaling(results, plots_dir)
-    # plot_latencies(results, plots_dir)
 
 
 if __name__ == "__main__":
