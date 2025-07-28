@@ -20,6 +20,7 @@ from om_benchmarks.io.writer_configs import (
 from om_benchmarks.plotting.concurrency_plots import plot_concurrency_scaling
 from om_benchmarks.read_indices import random_indices_for_read_range
 from om_benchmarks.script_utils import get_era5_path_for_config, get_script_dirs
+from om_benchmarks.stats import _clear_cache
 
 app = typer.Typer()
 
@@ -72,7 +73,7 @@ TEST_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
 
 DATA_SHAPE = (721, 1440, 744)
 READ_RANGE = (20, 20, 20)  # needs to access at least 4 chunks!
-CONCURRENCY_LEVELS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+CONCURRENCY_LEVELS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384]
 
 
 def parallel_read_task(reader, read_index) -> float:
@@ -106,6 +107,8 @@ def main():
     results: dict[AvailableFormats, dict[int, list[float]]] = {}
 
     for format, config in TEST_FORMATS:
+        _clear_cache()
+
         format_results = results.get(format, {})
         file_path = get_era5_path_for_config(format, config)
         print(f"\nBenchmarking {format.name} scaling...")
