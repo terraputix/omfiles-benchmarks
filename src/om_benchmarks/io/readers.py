@@ -14,6 +14,8 @@ import xarray as xr
 import zarr
 from omfiles.types import BasicSelection
 
+from om_benchmarks.io.MemoryMappedStore import MemoryMappedStore
+
 
 class BaseReader(ABC):
     filename: Path
@@ -167,8 +169,9 @@ class ZarrReader(BaseReader):
 
     @classmethod
     async def create(cls, filename: str):
+        store = MemoryMappedStore(filename)
         self = await super().create(filename)
-        z = zarr.open(str(self.filename), mode="r")
+        z = zarr.open(store, mode="r")
         if not isinstance(z, zarr.Group):
             raise TypeError("Expected a zarr Group")
         array = z["arr_0"]
