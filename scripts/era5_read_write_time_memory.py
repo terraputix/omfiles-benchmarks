@@ -17,9 +17,6 @@ from om_benchmarks.era5 import read_era5_data_to_temporal
 from om_benchmarks.modes import MetricMode, OpMode
 from om_benchmarks.mse import MSECache, mean_squared_error
 from om_benchmarks.plotting.read_write_plots import (
-    create_and_save_compression_factor_chart,
-    create_and_save_memory_usage_chart,
-    create_and_save_perf_chart,
     create_scatter_size_vs_mode,
     create_violin_plot,
 )
@@ -235,39 +232,22 @@ async def main(
 
         results_df.print_summary()
 
-        # Create visualizations based on mode
-        if mode == MetricMode.TIME:
-            create_and_save_perf_chart(
-                results_df.df.filter(pl.col("operation") == op_mode.value),
-                plots_dir,
-                file_name=f"performance_chart_{chunk_size}_{op_mode.value}_{mode.value}.png",
-            )
-        elif mode == MetricMode.MEMORY:
-            create_and_save_memory_usage_chart(
-                results_df.df.filter(pl.col("operation") == op_mode.value),
-                plots_dir,
-                file_name=f"memory_usage_chart_{chunk_size}_{op_mode.value}_{mode.value}.png",
-            )
+        plotting_df = results_df.prepare_for_plotting()
 
         # Common visualizations
         create_scatter_size_vs_mode(
-            results_df.df.filter(pl.col("operation") == op_mode.value),
+            plotting_df.filter(pl.col("operation") == op_mode.value),
             op_mode,
             mode,
             plots_dir,
             file_name=f"scatter_size_vs_{mode.value}_{chunk_size}_{op_mode.value}.png",
         )
         create_violin_plot(
-            results_df.df.filter(pl.col("operation") == op_mode.value),
+            plotting_df.filter(pl.col("operation") == op_mode.value),
             op_mode,
             mode,
             plots_dir,
             file_name=f"violin_plot_{chunk_size}_{op_mode.value}_{mode.value}.png",
-        )
-        create_and_save_compression_factor_chart(
-            results_df.df.filter(pl.col("operation") == op_mode.value),
-            plots_dir,
-            file_name=f"compression_ratio_chart_{chunk_size}_{op_mode.value}_{mode.value}.png",
         )
 
         gc.collect()

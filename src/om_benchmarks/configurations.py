@@ -39,9 +39,9 @@ CHUNKS = {
     "small": (5, 5, 744),
     "balanced": (32, 32, 32),
     "xtra_large": (40, 40, 744),
-    "medium": (10, 10, 744),
-    "large": (20, 20, 744),
-    "xtra_xtra_large": (100, 100, 744),
+    # "medium": (10, 10, 744),
+    # "large": (20, 20, 744),
+    # "xtra_xtra_large": (100, 100, 744),
 }
 
 _BASELINE_CONFIG = BaselineConfig(chunk_size=CHUNKS["small"])

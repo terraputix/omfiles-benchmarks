@@ -1,9 +1,12 @@
 from pathlib import Path
 
 import polars as pl
+import seaborn as sns
 
+from om_benchmarks.configurations import get_config_by_hash
 from om_benchmarks.constants import RESULTS_DIR
 from om_benchmarks.schemas import BENCHMARK_SCHEMA, BenchmarkRecord
+from om_benchmarks.utils import _uncompressed_size_from_array_shape
 
 
 class BenchmarkResultsDF:
@@ -50,6 +53,32 @@ class BenchmarkResultsDF:
             raise FileNotFoundError(f"File {self.current_run_path} does not exist")
         self.df = pl.read_parquet(self.current_run_path)
 
+    def prepare_for_plotting(self) -> pl.DataFrame:
+        config_list = [get_config_by_hash(c) for c in self.df["config_id"].to_list()]
+        chunk_shape_list = [config.chunk_size for config in config_list]
+
+        # Get normalized plot labels for color mapping
+        normalized_labels = [config.normalized_plot_label for config in config_list]
+        unique_labels = list(dict.fromkeys(normalized_labels))
+        palette = sns.color_palette("colorblind", n_colors=len(unique_labels))
+        color_map = dict(zip(unique_labels, palette))
+        color_list = [color_map[label] for label in normalized_labels]
+
+        df_prepared = self.df.with_columns(
+            [
+                pl.Series("config", config_list, dtype=pl.Object),
+                pl.struct(["array_shape", "file_size_bytes"])
+                .map_elements(
+                    lambda row: _uncompressed_size_from_array_shape(row["array_shape"]) / row["file_size_bytes"],
+                    return_dtype=pl.Float32,
+                )
+                .alias("compression_factor"),
+                pl.Series("chunk_shape", chunk_shape_list),
+                pl.Series("color", color_list),
+            ]
+        )
+        return df_prepared
+
     def print_summary(self) -> None:
         """Print benchmark summary to console"""
 
@@ -71,7 +100,7 @@ class BenchmarkResultsDF:
                     "operation",
                     "format",
                     "read_index",
-                    "compression",
+                    "config_id",
                     "mean_s",
                     "std_s",
                     "min_s",
