@@ -22,7 +22,6 @@ from om_benchmarks.plotting.read_write_plots import (
     create_and_save_perf_chart,
     create_scatter_size_vs_mode,
     create_violin_plot,
-    plot_radviz_results,
 )
 from om_benchmarks.read_indices import generate_read_indices
 from om_benchmarks.results import BenchmarkResultsDF
@@ -264,11 +263,6 @@ async def main(
             mode,
             plots_dir,
             file_name=f"violin_plot_{chunk_size}_{op_mode.value}_{mode.value}.png",
-        )
-        plot_radviz_results(
-            results_df.df.filter(pl.col("operation") == op_mode.value),
-            plots_dir,
-            file_name=f"radviz_results_{chunk_size}_{op_mode.value}_{mode.value}.png",
         )
         create_and_save_compression_factor_chart(
             results_df.df.filter(pl.col("operation") == op_mode.value),
