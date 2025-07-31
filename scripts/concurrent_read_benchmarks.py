@@ -4,22 +4,16 @@ import statistics
 import time
 from typing import List, Tuple
 
-import hdf5plugin
-import numcodecs
 import typer
 
+from om_benchmarks.configurations import _BASELINE_CONFIG, _HDF5_BEST, _OM_BEST, _ZARR_BEST, register_config
 from om_benchmarks.formats import AvailableFormats
 from om_benchmarks.io.writer_configs import (
-    BaselineConfig,
     FormatWriterConfig,
-    HDF5Config,
-    # NetCDFConfig,
-    OMConfig,
-    ZarrConfig,
 )
 from om_benchmarks.plotting.concurrency_plots import plot_concurrency_scaling
 from om_benchmarks.read_indices import random_indices_for_read_range
-from om_benchmarks.script_utils import get_era5_path_for_config, get_script_dirs
+from om_benchmarks.script_utils import get_era5_path_for_hashed_config, get_script_dirs
 from om_benchmarks.stats import _clear_cache
 
 app = typer.Typer()
@@ -27,49 +21,19 @@ app = typer.Typer()
 CHUNK_SIZE = (5, 5, 744)
 
 # Example: test these formats/configs
-TEST_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
+TEST_FORMAT_CONFIGS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
     # numpy memmap as a baseline
-    (AvailableFormats.Baseline, BaselineConfig(chunk_size=CHUNK_SIZE)),
-    (
-        AvailableFormats.HDF5,
-        HDF5Config(
-            chunk_size=CHUNK_SIZE,
-            compression=hdf5plugin.Blosc(cname="lz4", clevel=4, shuffle=hdf5plugin.Blosc.SHUFFLE),
-        ),
-    ),
-    # (
-    #     AvailableFormats.ZarrPythonViaZarrsCodecs,
-    #     ZarrConfig(
-    #         chunk_size=CHUNK_SIZE,
-    #         compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
-    #     ),
-    # ),
-    (
-        AvailableFormats.Zarr,
-        ZarrConfig(
-            chunk_size=CHUNK_SIZE,
-            compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
-    (
-        AvailableFormats.ZarrTensorStore,
-        ZarrConfig(
-            chunk_size=CHUNK_SIZE,
-            compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
+    (AvailableFormats.Baseline, _BASELINE_CONFIG),
+    (AvailableFormats.HDF5, _HDF5_BEST),
+    (AvailableFormats.ZarrPythonViaZarrsCodecs, _ZARR_BEST),
+    (AvailableFormats.Zarr, _ZARR_BEST),
+    (AvailableFormats.ZarrTensorStore, _ZARR_BEST),
     # NetCDF-Python will segfault when accessed concurrently: https://github.com/Unidata/netcdf4-python/issues/844
-    # (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=CHUNK_SIZE, compression="zlib", compression_level=3)),
-    (
-        AvailableFormats.OM,
-        OMConfig(
-            chunk_size=CHUNK_SIZE,
-            compression="pfor_delta_2d",
-            scale_factor=100,
-            add_offset=0,
-        ),
-    ),
+    # (AvailableFormats.NetCDF, _NETCDF_BEST),
+    (AvailableFormats.OM, _OM_BEST),
 ]
+
+TEST_FORMATS = [(format, register_config(config)) for format, config in TEST_FORMAT_CONFIGS]
 
 DATA_SHAPE = (721, 1440, 744)
 READ_RANGE = (20, 20, 20)  # needs to access at least 4 chunks!
@@ -106,11 +70,11 @@ def main():
     # {formats: {concurrency: [latencies]}}
     results: dict[AvailableFormats, dict[int, list[float]]] = {}
 
-    for format, config in TEST_FORMATS:
+    for format, config_hash in TEST_FORMATS:
         _clear_cache()
 
         format_results = results.get(format, {})
-        file_path = get_era5_path_for_config(format, config)
+        file_path = get_era5_path_for_hashed_config(format, CHUNK_SIZE, config_hash)
         print(f"\nBenchmarking {format.name} scaling...")
 
         for concurrency in CONCURRENCY_LEVELS:

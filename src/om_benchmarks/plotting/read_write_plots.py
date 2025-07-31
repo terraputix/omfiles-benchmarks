@@ -11,7 +11,9 @@ import numpy as np
 import polars as pl
 import seaborn as sns
 
+from om_benchmarks.configurations import get_config_by_hash
 from om_benchmarks.formats import AvailableFormats
+from om_benchmarks.io.writer_configs import FormatWriterConfig
 from om_benchmarks.modes import MetricMode, OpMode
 from om_benchmarks.parse_tuple import pretty_read_index
 from om_benchmarks.plotting.formatters import BYTES_FORMATTER, TIME_FORMATTER
@@ -22,14 +24,8 @@ _set_matplotlib_behaviour()
 MSE_COLUMN = "data_mse"
 
 
-def normalize_compression(comp: Optional[str]) -> str:
-    if comp is None or comp.lower() == "none" or comp == "":
-        return "None"
-    return comp
-
-
-def _get_label(format: AvailableFormats, compression: Optional[str]) -> str:
-    return f"{format.name} \n({normalize_compression(compression)})"
+def _get_label(format: AvailableFormats, config: FormatWriterConfig) -> str:
+    return f"{format.name} \n({config.normalized_plot_label})"
 
 
 # maps mse values to line widths
@@ -65,10 +61,10 @@ def get_color_palette(categories: Sequence[str]) -> dict[str, tuple[float, float
 
 def get_marker_style(row_dict: dict[str, Any], color_map: dict[str, tuple[float, float, float]]):
     fmt = AvailableFormats(row_dict["format"])
-    compression = normalize_compression(row_dict.get("compression"))
-    label = _get_label(fmt, compression)
+    config = get_config_by_hash(row_dict["config_id"])
+    label = _get_label(fmt, config)
     edgecolor, linewidth = edgecolor_and_linewidth(row_dict)
-    color = color_map[compression]
+    color = color_map[config.normalized_plot_label]
     return {
         "marker": fmt.scatter_plot_marker,
         "markerfacecolor": color,
@@ -149,7 +145,7 @@ def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str 
     n_cols = len(operations)
 
     fig, axes = get_5_4_subplot_grid(n_rows=n_rows, n_cols=n_cols)
-    color_map = get_color_palette([normalize_compression(c) for c in df["compression"].to_list()])
+    color_map = get_color_palette([get_config_by_hash(c).normalized_plot_label for c in df["config_id"].to_list()])
 
     # For each subplot
     for row_idx, (chunk_shape, read_index) in enumerate([(cs, ri) for cs in chunk_shapes for ri in read_indices]):
@@ -163,10 +159,11 @@ def create_and_save_perf_chart(df: pl.DataFrame, save_dir: Path, file_name: str 
 
             labels, mean_times, bar_colors = [], [], []
             for row_dict in filtered_df.iter_rows(named=True):
-                label = _get_label(AvailableFormats(row_dict["format"]), row_dict.get("compression"))
+                config = get_config_by_hash(row_dict["config_id"])
+                label = _get_label(AvailableFormats(row_dict["format"]), config)
                 labels.append(label)
                 mean_times.append(row_dict["mean_time"])
-                bar_colors.append(color_map[normalize_compression(row_dict.get("compression"))])
+                bar_colors.append(color_map[config.normalized_plot_label])
 
             ax.bar(labels, mean_times, color=bar_colors, edgecolor="white", linewidth=0.5)
             ax.set_xlabel("Format (Compression)")
@@ -197,7 +194,7 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
 
     fig, axes = get_5_4_subplot_grid(n_rows=n_rows, n_cols=n_cols)
 
-    color_map = get_color_palette([normalize_compression(c) for c in df["compression"].to_list()])
+    color_map = get_color_palette([get_config_by_hash(c).normalized_plot_label for c in df["config_id"].to_list()])
 
     for row_idx, (chunk_shape, read_index) in enumerate([(cs, ri) for cs in chunk_shapes for ri in read_indices]):
         for col_idx, operation in enumerate(operations):
@@ -210,10 +207,11 @@ def create_and_save_memory_usage_chart(df: pl.DataFrame, save_dir: Path, file_na
 
             labels, memory_usages, bar_colors = [], [], []
             for row_dict in filtered_df.iter_rows(named=True):
-                label = _get_label(AvailableFormats(row_dict["format"]), row_dict.get("compression"))
+                config = get_config_by_hash(row_dict["config_id"])
+                label = _get_label(AvailableFormats(row_dict["format"]), config)
                 labels.append(label)
                 memory_usages.append(row_dict["memory_peak_bytes"])
-                bar_colors.append(color_map[normalize_compression(row_dict.get("compression"))])
+                bar_colors.append(color_map[config.normalized_plot_label])
 
             ax.bar(labels, memory_usages, color=bar_colors, edgecolor="white", linewidth=0.5)
             ax.set_xlabel("Format (Compression)")
@@ -249,7 +247,7 @@ def create_and_save_compression_factor_chart(
     filtered_df = filtered_df.sort("compression_factor", descending=True)
 
     labels = [
-        _get_label(AvailableFormats(fmt), filtered_df["compression"][i])
+        _get_label(AvailableFormats(fmt), get_config_by_hash(filtered_df["config_id"][i]))
         for i, fmt in enumerate(filtered_df["format"].to_list())
     ]
     compression_factors = filtered_df["compression_factor"].to_list()
@@ -300,7 +298,7 @@ def create_scatter_size_vs_mode(
     plt.subplots_adjust(right=0.76)
 
     # Color by compression, marker by format
-    color_map = get_color_palette([normalize_compression(c) for c in df["compression"].to_list()])
+    color_map = get_color_palette([get_config_by_hash(c).normalized_plot_label for c in df["config_id"].to_list()])
 
     # plot subplots
     for row_idx in range(0, n_rows):
@@ -341,7 +339,7 @@ def create_scatter_size_vs_mode(
 
     # Add legend
     handles = []
-    df_for_legend = df.unique(subset=["compression", "format"])
+    df_for_legend = df.unique(subset=["config_id", "format"])
     for row_dict in df_for_legend.iter_rows(named=True):
         handles.append(
             matplotlib.lines.Line2D(
@@ -399,7 +397,7 @@ def create_violin_plot(
                     {
                         "format": row_dict["format"],
                         "label": _get_label(
-                            AvailableFormats(row_dict["format"]), normalize_compression(row_dict.get("compression"))
+                            AvailableFormats(row_dict["format"]), get_config_by_hash(row_dict["config_id"])
                         ),
                         "chunk_shape": row_dict["chunk_shape"],
                         "read_index": row_dict["read_index"],
@@ -628,15 +626,18 @@ def plot_radviz_results(df: pl.DataFrame, save_dir: Path, file_name: str = "radv
 
     # Build label to format mapping
     format_to_label_map = {}
-    for row_dict in df.select(["format", "compression"]).unique().iter_rows(named=True):
+    for row_dict in df.select(["format", "config_id"]).unique().iter_rows(named=True):
         fmt_enum = AvailableFormats(row_dict["format"])
-        label = _get_label(fmt_enum, row_dict["compression"])
+        label = _get_label(fmt_enum, get_config_by_hash(row_dict["config_id"]))
         format_to_label_map[label] = fmt_enum
 
     # Add label column
     df = df.with_columns(
-        pl.struct(["format", "compression"])
-        .map_elements(lambda x: _get_label(AvailableFormats(x["format"]), x["compression"]), return_dtype=pl.Utf8)
+        pl.struct(["format", "config_id"])
+        .map_elements(
+            lambda x: _get_label(AvailableFormats(x["format"]), get_config_by_hash(x["config_id"])),
+            return_dtype=pl.Utf8,
+        )
         .alias("label")
     )
 
