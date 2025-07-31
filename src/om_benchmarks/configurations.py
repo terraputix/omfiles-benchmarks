@@ -1,4 +1,5 @@
 import hashlib
+import pickle
 from dataclasses import replace
 from typing import Dict, List, Tuple, cast
 
@@ -24,8 +25,10 @@ CONFIG_REGISTRY: Dict[str, FormatWriterConfig] = {}
 
 def register_config(config: FormatWriterConfig) -> str:
     """Register a configuration and return its unique identifier."""
+    # Pickle can be used to also serialize non native python objects deterministically
+    serialized_config = pickle.dumps(config)
     # Create a hash of the configuration's picklable attributes
-    config_hash = hashlib.sha256(repr(config).encode()).hexdigest()
+    config_hash = hashlib.sha256(serialized_config).hexdigest()
     CONFIG_REGISTRY[config_hash] = config
     return config_hash
 
