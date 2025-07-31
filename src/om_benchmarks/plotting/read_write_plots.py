@@ -145,7 +145,7 @@ def create_scatter_size_vs_mode(
 
     # Add legend
     handles = []
-    df_for_legend = df.unique(subset=["config_id", "format"])
+    df_for_legend = df.unique(subset=["config_id", "format"]).sort("format")
     for row_dict in df_for_legend.iter_rows(named=True):
         handles.append(
             matplotlib.lines.Line2D(
