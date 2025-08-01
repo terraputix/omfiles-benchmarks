@@ -6,6 +6,8 @@ from typing import Dict, List, Tuple, cast
 import hdf5plugin
 import numcodecs
 import numcodecs.zarr3
+import omfiles.numcodecs
+import omfiles.zarr3
 from hdf5plugin import Blosc as HBlosc
 from numcodecs import Blosc as NBlosc
 
@@ -83,6 +85,20 @@ _ZARR_CONFIGS = [
     ZarrConfig(chunk_size=CHUNKS["small"], compressor=numcodecs.Blosc()),
     _ZARR_BEST,
     ZarrConfig(chunk_size=CHUNKS["small"], compressor=NBlosc(cname="zstd", clevel=3, shuffle=NBlosc.BITSHUFFLE)),
+    ZarrConfig(
+        zarr_format=3,
+        chunk_size=CHUNKS["small"],
+        serializer=omfiles.zarr3.PforSerializer(),  # type: ignore
+        filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
+        only_python_zarr=True,
+    ),
+    ZarrConfig(
+        zarr_format=3,
+        chunk_size=CHUNKS["small"],
+        serializer=numcodecs.zarr3.PCodec(mode_spec="auto"),
+        filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
+        only_python_zarr=True,
+    ),
     ZarrConfig(
         zarr_format=3,
         chunk_size=CHUNKS["small"],

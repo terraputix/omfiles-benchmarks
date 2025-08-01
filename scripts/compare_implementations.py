@@ -106,6 +106,7 @@ def main(
         CLIImplementation("rust", [rust_binary]),
         CLIImplementation("swift", [swift_binary]),
         CLIImplementation("javascript (prefetched)", ["node", ts_script], ["true"]),
+        # CLIImplementation("javascript bun (prefetched)", ["bun", ts_script], ["true"]),
         CLIImplementation("javascript (file I/O)", ["node", ts_script]),
     ]
 

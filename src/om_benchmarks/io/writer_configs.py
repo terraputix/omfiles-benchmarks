@@ -8,8 +8,7 @@ import h5py
 import numcodecs.abc
 from h5py._hl.filters import Gzip
 from hdf5plugin import SZ, Blosc, Blosc2
-from numcodecs.zarr3 import ArrayArrayCodec
-from zarr.abc.codec import ArrayBytesCodec
+from zarr.core.array import FiltersLike, SerializerLike
 
 if TYPE_CHECKING:
     from netCDF4 import CompressionLevel, CompressionType
@@ -86,8 +85,8 @@ class ZarrConfig(FormatWriterConfig):
 
     # Compression pipeline components
     compressor: Optional[numcodecs.abc.Codec] | Literal["auto"] = "auto"
-    serializer: ArrayBytesCodec | Literal["auto"] = "auto"
-    filter: ArrayArrayCodec | Literal["auto"] = "auto"
+    serializer: SerializerLike = "auto"
+    filter: FiltersLike = "auto"
 
     @property
     def plot_label(self) -> str:
