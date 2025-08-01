@@ -4,7 +4,6 @@ from typing import Tuple
 
 from om_benchmarks.constants import FILES_DIR, PLOTS_DIR, RESULTS_DIR
 from om_benchmarks.formats import AvailableFormats
-from om_benchmarks.io.writer_configs import FormatWriterConfig
 
 
 def make_file_name_safe(s: str) -> str:
@@ -12,13 +11,8 @@ def make_file_name_safe(s: str) -> str:
     return re.sub(r"[^A-Za-z0-9_\-]", "_", s)
 
 
-def get_era5_path_for_config(format: AvailableFormats, config: FormatWriterConfig) -> Path:
-    chunk_size_str = "_".join(map(str, config.chunk_size))
-    compression_str = config.compression_identifier
-
-    safe_compression_str = make_file_name_safe(compression_str)
-    file_name = f"era5_chunks_{chunk_size_str}_compr_{safe_compression_str}"
-
+def get_era5_path_for_hashed_config(format: AvailableFormats, chunk_size: tuple[int, int, int], hash: str) -> Path:
+    file_name = f"era5_chunks_{'_'.join(map(str, chunk_size))}_{hash}"
     return Path(f"{FILES_DIR}/{file_name}").with_suffix(f"{format.file_extension}")
 
 

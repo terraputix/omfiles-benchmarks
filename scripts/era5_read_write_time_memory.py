@@ -2,41 +2,28 @@ import gc
 import os
 import shutil
 import statistics
-from dataclasses import replace
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
-import hdf5plugin
-import numcodecs
-import numcodecs.zarr3
 import polars as pl
 import typer
 
 from om_benchmarks.AsyncTyper import AsyncTyper
-from om_benchmarks.era5 import read_era5_data_to_temporal
-from om_benchmarks.formats import AvailableFormats
-from om_benchmarks.io.writer_configs import (
-    BaselineConfig,
-    FormatWriterConfig,
-    HDF5Config,
-    NetCDFConfig,
-    OMConfig,
-    ZarrConfig,
+from om_benchmarks.configurations import (
+    REGISTERED_FORMAT_INVENTORY,
+    get_config_by_hash,
 )
+from om_benchmarks.era5 import read_era5_data_to_temporal
 from om_benchmarks.modes import MetricMode, OpMode
 from om_benchmarks.mse import MSECache, mean_squared_error
 from om_benchmarks.plotting.read_write_plots import (
-    create_and_save_compression_factor_chart,
-    create_and_save_memory_usage_chart,
-    create_and_save_perf_chart,
     create_scatter_size_vs_mode,
     create_violin_plot,
-    plot_radviz_results,
 )
 from om_benchmarks.read_indices import generate_read_indices
 from om_benchmarks.results import BenchmarkResultsDF
 from om_benchmarks.schemas import BenchmarkRecord, BenchmarkStats
-from om_benchmarks.script_utils import get_era5_path_for_config, get_script_dirs
+from om_benchmarks.script_utils import get_era5_path_for_hashed_config, get_script_dirs
 from om_benchmarks.stats import _clear_cache, measure_memory, measure_time
 
 app = AsyncTyper()
@@ -52,164 +39,10 @@ read_ranges: list[tuple[int, int, int]] = [
     (721, 1440, 1),
 ]
 
-chunk_sizes = {
-    "small": (5, 5, 744),
-    "balanced": (32, 32, 32),
-    "xtra_large": (40, 40, 744),
-    "medium": (10, 10, 744),
-    "large": (20, 20, 744),
-    "xtra_xtra_large": (100, 100, 744),
-}
-
-READ_FORMATS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
-    # numpy memmap as a baseline
-    (AvailableFormats.Baseline, BaselineConfig(chunk_size=chunk_sizes["small"])),
-    # netcdf baseline: no compression
-    (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression=None)),
-    # hdf5 baseline: no compression
-    (AvailableFormats.HDF5, HDF5Config(chunk_size=chunk_sizes["small"])),
-    # zarr baseline: no compression
-    (AvailableFormats.Zarr, ZarrConfig(chunk_size=chunk_sizes["small"], compressor=None)),
-    (
-        AvailableFormats.NetCDF,
-        NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", significant_digits=1),
-    ),
-    (
-        AvailableFormats.NetCDF,
-        NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", significant_digits=2),
-    ),
-    (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression="szip", scale_factor=1.0)),
-    (
-        AvailableFormats.HDF5,
-        # https://hdfgroup.github.io/hdf5/develop/group___s_z_i_p.html#ga688fde8106225adf9e6ccd2a168dec74
-        # https://hdfgroup.github.io/hdf5/develop/_h5_d__u_g.html#title6
-        # 1st 'nn' stands for: H5_SZIP_NN_OPTION_MASK
-        # 2nd 32 stands for: 32 pixels per block
-        HDF5Config(chunk_size=chunk_sizes["small"], compression="szip", compression_opts=("nn", 32), scale_offset=2),
-    ),
-    (
-        AvailableFormats.HDF5,
-        # https://hdfgroup.github.io/hdf5/develop/group___s_z_i_p.html#ga688fde8106225adf9e6ccd2a168dec74
-        # https://hdfgroup.github.io/hdf5/develop/_h5_d__u_g.html#title6
-        # 1st 'nn' stands for: H5_SZIP_NN_OPTION_MASK
-        # 2nd 32 stands for: 32 pixels per block
-        HDF5Config(
-            chunk_size=chunk_sizes["small"],
-            compression="szip",
-            compression_opts=("nn", 8),
-        ),
-    ),
-    (
-        AvailableFormats.HDF5,
-        HDF5Config(
-            chunk_size=chunk_sizes["small"],
-            compression=hdf5plugin.Blosc(cname="zstd", clevel=9, shuffle=hdf5plugin.Blosc.SHUFFLE),
-        ),
-    ),
-    (
-        AvailableFormats.HDF5,
-        HDF5Config(
-            chunk_size=chunk_sizes["small"],
-            compression=hdf5plugin.Blosc(cname="lz4", clevel=4, shuffle=hdf5plugin.Blosc.SHUFFLE),
-        ),
-    ),
-    (
-        AvailableFormats.HDF5,
-        HDF5Config(
-            chunk_size=chunk_sizes["small"],
-            compression=hdf5plugin.SZ(absolute=0.01),
-        ),
-    ),
-    (
-        AvailableFormats.Zarr,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="zstd", clevel=3, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
-    (
-        AvailableFormats.Zarr,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(),
-        ),
-    ),
-    (
-        AvailableFormats.Zarr,
-        ZarrConfig(
-            zarr_format=3,
-            chunk_size=chunk_sizes["small"],
-            serializer=numcodecs.zarr3.PCodec(level=8, mode_spec="auto"),
-            filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=100, dtype="f4", astype="i4"),
-        ),
-    ),
-    (
-        AvailableFormats.Zarr,
-        ZarrConfig(
-            zarr_format=3,
-            chunk_size=chunk_sizes["small"],
-            serializer=numcodecs.zarr3.PCodec(),
-        ),
-    ),
-    (
-        AvailableFormats.ZarrTensorStore,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(),
-        ),
-    ),
-    (
-        AvailableFormats.ZarrPythonViaZarrsCodecs,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(),
-        ),
-    ),
-    (
-        AvailableFormats.Zarr,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
-    (
-        AvailableFormats.ZarrTensorStore,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
-    (
-        AvailableFormats.ZarrPythonViaZarrsCodecs,
-        ZarrConfig(
-            chunk_size=chunk_sizes["small"],
-            compressor=numcodecs.Blosc(cname="lz4", clevel=4, shuffle=numcodecs.Blosc.BITSHUFFLE),
-        ),
-    ),
-    (AvailableFormats.NetCDF, NetCDFConfig(chunk_size=chunk_sizes["small"], compression="zlib", compression_level=3)),
-    (
-        AvailableFormats.OM,
-        OMConfig(
-            chunk_size=chunk_sizes["small"],
-            compression="pfor_delta_2d",
-            scale_factor=100,
-            add_offset=0,
-        ),
-    ),
-    (
-        AvailableFormats.OM,
-        OMConfig(
-            chunk_size=chunk_sizes["small"],
-            compression="pfor_delta_2d",
-            scale_factor=20,
-            add_offset=0,
-        ),
-    ),
-    (
-        AvailableFormats.OM,
-        OMConfig(chunk_size=chunk_sizes["small"], compression="fpx_xor_2d"),
-    ),
-]
+# READ_FORMATS_PER_CHUNK_SIZE: Dict[tuple[int, int, int], List[Tuple[AvailableFormats, str]]] = {
+#     (format, register_config(replace(config, chunk_size=chunk_size)))
+#     for chunk_size, config in CONFIGURATION_INVENTORY.values()
+# }
 
 
 @app.command()
@@ -229,16 +62,17 @@ async def main(
     # Generate read_indices: for each read_range, generate `iterations` tuples of slices
     read_indices = generate_read_indices(data_shape, iterations, read_ranges)
 
-    for _, chunk_size in chunk_sizes.items():
+    for chunk_size, read_formats in REGISTERED_FORMAT_INVENTORY.items():
         bm_results: list[BenchmarkRecord] = []
         if not plot_only:
-            for format, _config in READ_FORMATS:
-                config_for_this_run = replace(_config, chunk_size=chunk_size)
-                file_path = get_era5_path_for_config(format, config=config_for_this_run)
+            for format, config_hash in read_formats:
+                file_path = get_era5_path_for_hashed_config(format, chunk_size=chunk_size, hash=config_hash)
+
+                config = get_config_by_hash(config_hash)
 
                 if op_mode == OpMode.WRITE:
                     try:
-                        writer = format.writer_class(file_path.__str__(), config_for_this_run)
+                        writer = format.writer_class(file_path.__str__(), config)
                     except Exception as e:
                         print(f"No writer for {format.name}: {e}")
                         continue
@@ -309,7 +143,7 @@ async def main(
                     write_result = BenchmarkRecord.from_benchmark_stats(
                         stats=write_stats,
                         format=format,
-                        writer_config=config_for_this_run,
+                        config_id=config_hash,
                         operation=op_mode,
                         array_shape=data.shape,
                         read_index=None,
@@ -375,7 +209,7 @@ async def main(
                         result = BenchmarkRecord.from_benchmark_stats(
                             stats=read_stats,
                             format=format,
-                            writer_config=config_for_this_run,
+                            config_id=config_hash,
                             operation=op_mode,
                             array_shape=data_shape,
                             read_index=read_length,
@@ -398,44 +232,22 @@ async def main(
 
         results_df.print_summary()
 
-        # Create visualizations based on mode
-        if mode == MetricMode.TIME:
-            create_and_save_perf_chart(
-                results_df.df.filter(pl.col("operation") == op_mode.value),
-                plots_dir,
-                file_name=f"performance_chart_{chunk_size}_{op_mode.value}_{mode.value}.png",
-            )
-        elif mode == MetricMode.MEMORY:
-            create_and_save_memory_usage_chart(
-                results_df.df.filter(pl.col("operation") == op_mode.value),
-                plots_dir,
-                file_name=f"memory_usage_chart_{chunk_size}_{op_mode.value}_{mode.value}.png",
-            )
+        plotting_df = results_df.prepare_for_plotting()
 
         # Common visualizations
         create_scatter_size_vs_mode(
-            results_df.df.filter(pl.col("operation") == op_mode.value),
+            plotting_df.filter(pl.col("operation") == op_mode.value),
             op_mode,
             mode,
             plots_dir,
             file_name=f"scatter_size_vs_{mode.value}_{chunk_size}_{op_mode.value}.png",
         )
         create_violin_plot(
-            results_df.df.filter(pl.col("operation") == op_mode.value),
+            plotting_df.filter(pl.col("operation") == op_mode.value),
             op_mode,
             mode,
             plots_dir,
             file_name=f"violin_plot_{chunk_size}_{op_mode.value}_{mode.value}.png",
-        )
-        plot_radviz_results(
-            results_df.df.filter(pl.col("operation") == op_mode.value),
-            plots_dir,
-            file_name=f"radviz_results_{chunk_size}_{op_mode.value}_{mode.value}.png",
-        )
-        create_and_save_compression_factor_chart(
-            results_df.df.filter(pl.col("operation") == op_mode.value),
-            plots_dir,
-            file_name=f"compression_ratio_chart_{chunk_size}_{op_mode.value}_{mode.value}.png",
         )
 
         gc.collect()

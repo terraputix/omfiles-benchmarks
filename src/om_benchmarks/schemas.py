@@ -4,7 +4,6 @@ from typing import List, Literal, Optional, Tuple
 import polars as pl
 
 from om_benchmarks.formats import AvailableFormats
-from om_benchmarks.io.writer_configs import FormatWriterConfig
 from om_benchmarks.modes import OpMode
 
 
@@ -26,10 +25,9 @@ BENCHMARK_SCHEMA = pl.Schema(
     {
         "operation": pl.Utf8,
         "format": pl.Utf8,
+        "config_id": pl.Utf8,
         "array_shape": pl.Utf8,
-        "compression": pl.Utf8,
         "data_mse": pl.Float64,
-        "chunk_shape": pl.Utf8,
         "read_index": pl.Utf8,
         "iterations": pl.Int64,
         "mean_time": pl.Float64,
@@ -52,10 +50,9 @@ class BenchmarkRecord:
 
     operation: Literal["read", "write"]
     format: str
+    config_id: str  # Unique identifier for the configuration
     array_shape: str  # serialized tuple as string
-    compression: str
     data_mse: float
-    chunk_shape: str  # serialized tuple as string
     read_index: str  # serialized tuple as string
     iterations: int
     mean_time: float
@@ -74,7 +71,7 @@ class BenchmarkRecord:
         cls,
         stats: BenchmarkStats,
         format: AvailableFormats,
-        writer_config: FormatWriterConfig,
+        config_id: str,
         operation: OpMode,
         array_shape: Tuple[int, ...],
         read_index: Optional[Tuple[int, ...]],
@@ -85,10 +82,9 @@ class BenchmarkRecord:
         return cls(
             operation=operation.value,
             format=format.name,
+            config_id=config_id,
             array_shape=str(array_shape),
-            compression=writer_config.compression_pretty_name,
             data_mse=data_mse,
-            chunk_shape=str(writer_config.chunk_size),
             read_index=str(read_index) if read_index is not None else "None",
             iterations=iterations,
             mean_time=stats.mean,

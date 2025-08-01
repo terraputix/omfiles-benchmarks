@@ -13,8 +13,9 @@ import tensorstore as ts
 import xarray as xr
 import zarr
 from omfiles.types import BasicSelection
+from zarr.storage import LocalStore
 
-from om_benchmarks.io.MemoryMappedStore import MemoryMappedStore
+# from om_benchmarks.io.MemoryMappedStore import MemoryMappedStore
 
 
 class BaseReader(ABC):
@@ -169,7 +170,8 @@ class ZarrReader(BaseReader):
 
     @classmethod
     async def create(cls, filename: str):
-        store = MemoryMappedStore(filename)
+        store = LocalStore(filename)
+        # store = MemoryMappedStore(filename)
         self = await super().create(filename)
         z = zarr.open(store, mode="r")
         if not isinstance(z, zarr.Group):

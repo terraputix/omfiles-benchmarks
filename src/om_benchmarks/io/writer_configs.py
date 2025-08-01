@@ -19,6 +19,12 @@ else:
     CompressionLevel = int
 
 
+def normalize_label(label: Optional[str]) -> str:
+    if label is None or label.lower() == "none" or label == "":
+        return "None"
+    return label
+
+
 @dataclass
 class FormatWriterConfig(ABC):
     """Base configuration class for data format writers."""
@@ -27,15 +33,13 @@ class FormatWriterConfig(ABC):
     chunk_size: Tuple[int, ...]
 
     @property
-    @abstractmethod
-    def compression_identifier(self) -> str:
-        """Name and compression level"""
-        raise NotImplementedError
+    def normalized_plot_label(self) -> str:
+        return normalize_label(self.plot_label)
 
     @property
     @abstractmethod
-    def compression_pretty_name(self) -> str:
-        """Pretty name of the compression"""
+    def plot_label(self) -> str:
+        """Label for plotting"""
         raise NotImplementedError
 
 
@@ -48,20 +52,7 @@ class HDF5Config(FormatWriterConfig):
     compression_opts: Optional[tuple] = None
 
     @property
-    def compression_identifier(self) -> str:
-        """Name and compression level"""
-        compression_str = ""
-        if self.compression is None:
-            compression_str = "none"
-        elif isinstance(self.compression, str):
-            compression_str = self.compression + str(self.compression_opts)
-        else:
-            compression_str = f"{self.compression.filter_id}_{self.compression.filter_options}"
-
-        return f"{compression_str}_{self.scale_offset}"
-
-    @property
-    def compression_pretty_name(self) -> str:
+    def plot_label(self) -> str:
         """Pretty name of the compression"""
         if self.compression is None:
             return "none"
@@ -91,6 +82,7 @@ class ZarrConfig(FormatWriterConfig):
     # Zarr-specific options
     zarr_format: int = 2
     dtype: str = "f4"
+    only_python_zarr: bool = False
 
     # Compression pipeline components
     compressor: Optional[numcodecs.abc.Codec] | Literal["auto"] = "auto"
@@ -98,21 +90,7 @@ class ZarrConfig(FormatWriterConfig):
     filter: ArrayArrayCodec | Literal["auto"] = "auto"
 
     @property
-    def compression_identifier(self) -> str:
-        """Name and compression level"""
-        compressor_str: str = "auto"
-        serializer_str: str = "auto"
-        filter_str: str = "auto"
-        if self.compressor != "auto" and self.compressor is not None:
-            compressor_str = f"{self.compressor.codec_id}_{self.compressor.get_config()}"
-        if self.serializer != "auto":
-            serializer_str = f"{self.serializer.__class__.__name__}"
-        if self.filter != "auto":
-            filter_str = f"{self.filter.__class__.__name__}"
-        return f"compressor_{compressor_str}_serializer_{serializer_str}_filter_{filter_str}"
-
-    @property
-    def compression_pretty_name(self) -> str:
+    def plot_label(self) -> str:
         compressor_str = "auto"
         serializer_str = "auto"
         filter_str = "auto"
@@ -139,14 +117,7 @@ class NetCDFConfig(FormatWriterConfig):
     significant_digits: Optional[int] = None
 
     @property
-    def compression_identifier(self) -> str:
-        if self.compression is None:
-            return "none"
-            # return f"{self.compression}_{self.compression_level}_scale_{self.scale_factor}_offset_{str(int(self.add_offset))}_digits_{self.significant_digits}"
-        return f"{self.compression}_{self.compression_level}_scale_{self.scale_factor}_digits_{self.significant_digits}"
-
-    @property
-    def compression_pretty_name(self) -> str:
+    def plot_label(self) -> str:
         if self.compression is None:
             return "None"
         return f"{self.compression} {self.compression_level} scale {self.scale_factor} digits {self.significant_digits}"
@@ -161,11 +132,7 @@ class OMConfig(FormatWriterConfig):
     add_offset: int = 0
 
     @property
-    def compression_identifier(self) -> str:
-        return f"{self.compression}_{self.scale_factor}_{self.add_offset}"
-
-    @property
-    def compression_pretty_name(self) -> str:
+    def plot_label(self) -> str:
         if self.compression is None:
             return "None"
         return f"{self.compression} scale {self.scale_factor} offset {self.add_offset}"
@@ -178,9 +145,5 @@ class BaselineConfig(FormatWriterConfig):
     dtype: str = "f4"
 
     @property
-    def compression_identifier(self) -> str:
-        return f"baseline_{self.dtype}"
-
-    @property
-    def compression_pretty_name(self) -> str:
+    def plot_label(self) -> str:
         return f"Baseline mmap ({self.dtype})"
