@@ -72,18 +72,18 @@ class BenchmarkResultsDF:
         chunk_shape_list = [config.chunk_size for config in config_list]
 
         # Get normalized plot labels for color mapping
-        normalized_labels = [config.normalized_plot_label for config in config_list]
-        unique_labels = list(dict.fromkeys(normalized_labels))
+        plot_labels = [config.plot_label for config in config_list]
+        unique_labels = list(dict.fromkeys(plot_labels))
         palette = sns.color_palette("colorblind", n_colors=len(unique_labels))
         color_map = dict(zip(unique_labels, palette))
-        color_list = [color_map[label] for label in normalized_labels]
+        color_list = [color_map[label] for label in plot_labels]
 
         format_order = {fmt.value: fmt.format_order for fmt in AvailableFormats}
 
         df_prepared = self.df.with_columns(
             [
                 pl.Series("config", config_list, dtype=pl.Object),
-                pl.Series("compression_label", normalized_labels),
+                pl.Series("compression_label", plot_labels),
                 pl.struct(["array_shape", "file_size_bytes"])
                 .map_elements(
                     lambda row: _uncompressed_size_from_array_shape(row["array_shape"]) / row["file_size_bytes"],

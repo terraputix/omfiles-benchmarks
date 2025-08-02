@@ -11,8 +11,10 @@ from om_benchmarks.formats import AvailableFormats
 from om_benchmarks.io.writer_configs import (
     FormatWriterConfig,
 )
-from om_benchmarks.plotting.concurrency_plots import plot_concurrency_scaling
-from om_benchmarks.read_indices import random_indices_for_read_range
+from om_benchmarks.plotting.concurrency_plots import plot_concurrency_scaling, plot_concurrency_violin
+from om_benchmarks.read_indices import (
+    generate_read_indices_single_range,
+)
 from om_benchmarks.script_utils import get_era5_path_for_hashed_config, get_script_dirs
 from om_benchmarks.stats import _clear_cache
 
@@ -86,6 +88,7 @@ def main():
         results[format] = format_results
 
     plot_concurrency_scaling(results, plots_dir)
+    plot_concurrency_violin(results, plots_dir)
 
 
 if __name__ == "__main__":

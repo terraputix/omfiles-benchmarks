@@ -18,22 +18,12 @@ else:
     CompressionLevel = int
 
 
-def normalize_label(label: Optional[str]) -> str:
-    if label is None or label.lower() == "none" or label == "":
-        return "None"
-    return label
-
-
 @dataclass
 class FormatWriterConfig(ABC):
     """Base configuration class for data format writers."""
 
     # Common configuration options across formats
     chunk_size: Tuple[int, ...]
-
-    @property
-    def normalized_plot_label(self) -> str:
-        return normalize_label(self.plot_label)
 
     @property
     @abstractmethod
@@ -54,7 +44,7 @@ class HDF5Config(FormatWriterConfig):
     def plot_label(self) -> str:
         """Pretty name of the compression"""
         if self.compression is None:
-            return "none"
+            return "No compression"
         elif isinstance(self.compression, str):
             return self.compression + str(self.compression_opts) + str(self.scale_offset)
         elif self.compression.__class__ is Gzip:
@@ -118,7 +108,7 @@ class NetCDFConfig(FormatWriterConfig):
     @property
     def plot_label(self) -> str:
         if self.compression is None:
-            return "None"
+            return "No compression"
         return f"{self.compression} {self.compression_level} scale {self.scale_factor} digits {self.significant_digits}"
 
 
@@ -132,8 +122,6 @@ class OMConfig(FormatWriterConfig):
 
     @property
     def plot_label(self) -> str:
-        if self.compression is None:
-            return "None"
         return f"{self.compression} scale {self.scale_factor} offset {self.add_offset}"
 
 
@@ -145,4 +133,4 @@ class BaselineConfig(FormatWriterConfig):
 
     @property
     def plot_label(self) -> str:
-        return f"Baseline mmap ({self.dtype})"
+        return "No compression"

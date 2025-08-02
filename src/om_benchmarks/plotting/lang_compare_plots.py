@@ -24,7 +24,7 @@ def create_and_save_violin_plot(df: pl.DataFrame, plots_dir: Path, file_name: st
         x="implementation",
         y="all_times",
         data=pdf,
-        scale="width",
+        density_norm="width",
         palette="Set2",
         inner="quartile",
         log_scale=10,

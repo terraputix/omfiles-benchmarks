@@ -3,6 +3,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 
 from om_benchmarks.formats import AvailableFormats
@@ -42,7 +43,7 @@ def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, list[floa
             mean_latencies,
             s=np.arange(len(concurrencies)) * 10 + 10,
             marker=getattr(format, "scatter_plot_marker", "o"),
-            label=format.name,
+            label=format.plot_label,
             edgecolor="k",
             color=color,
             alpha=0.7,
@@ -55,7 +56,48 @@ def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, list[floa
     ax.set_ylabel("Latency")
     ax.yaxis.set_major_formatter(TIME_FORMATTER)
     ax.set_title("Throughput vs. Latency")
-    ax.legend()
+    ax.legend(title="Format", frameon=True, fancybox=True)
     plt.tight_layout()
     plt.savefig(f"{output_dir}/concurrency_scaling.png")
     plt.close(fig)
+
+
+def plot_concurrency_violin(results: dict[AvailableFormats, dict[int, list[float]]], output_dir: Path):
+    """
+    Plots a violin plot of latency distributions for each format at each concurrency level.
+    """
+    # Flatten results into a DataFrame
+    records = []
+    for fmt, conc_dict in results.items():
+        for conc, latencies in conc_dict.items():
+            for latency in latencies:
+                records.append(
+                    {
+                        "Format": fmt.plot_label if hasattr(fmt, "plot_label") else str(fmt),
+                        "Concurrency": conc,
+                        "Latency": latency,
+                    }
+                )
+    df = pd.DataFrame(records)
+
+    plt.figure(figsize=(7, 12))
+    ax = sns.violinplot(
+        x="Latency",
+        y="Concurrency",
+        hue="Format",
+        data=df,
+        orient="h",
+        density_norm="width",
+        split=False,
+        inner="quartile",
+        log_scale=(True, False),
+        palette="colorblind",
+    )
+    ax.set_ylabel("Concurrency Level")
+    ax.set_xlabel("Latency")
+    ax.set_title("Latency Distribution by Concurrency and Format")
+    ax.xaxis.set_major_formatter(TIME_FORMATTER)
+    plt.legend(title="Format", frameon=True, fancybox=True)
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/concurrency_violin.png")
+    plt.close()
