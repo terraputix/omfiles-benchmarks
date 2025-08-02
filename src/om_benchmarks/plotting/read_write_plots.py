@@ -43,7 +43,7 @@ def edgecolor_and_linewidth(row_dict):
 
 
 def _get_label(format: AvailableFormats, compression_label: str) -> str:
-    return f"{format.name} \n({compression_label})"
+    return f"{format.plot_label} \n({compression_label})"
 
 
 def get_marker_style(row_dict: dict[str, Any]):
