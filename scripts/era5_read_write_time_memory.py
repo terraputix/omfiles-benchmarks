@@ -26,7 +26,7 @@ from om_benchmarks.schemas import BenchmarkRecord, BenchmarkStats
 from om_benchmarks.script_utils import get_era5_path_for_hashed_config, get_script_dirs
 from om_benchmarks.stats import _clear_cache, measure_memory, measure_time
 
-app = AsyncTyper()
+app = AsyncTyper(pretty_exceptions_enable=False)
 
 data_shape = (721, 1440, 744)
 
@@ -219,10 +219,11 @@ async def main(
                         bm_results.append(result)
                         gc.collect()
 
+        chunk_size_str = "_".join(map(str, chunk_size))
+
         results_df = BenchmarkResultsDF(
             results_dir,
-            all_runs_name="benchmark_results_all.parquet",
-            current_run_name=f"benchmark_results_{chunk_size}_{op_mode.value}_{mode.value}.parquet",
+            base_file_name=f"benchmark_results_{chunk_size_str}_{op_mode.value}_{mode.value}",
         )
         if not plot_only:
             results_df.append(bm_results)
@@ -240,14 +241,14 @@ async def main(
             op_mode,
             mode,
             plots_dir,
-            file_name=f"scatter_size_vs_{mode.value}_{chunk_size}_{op_mode.value}.png",
+            file_name=f"scatter_size_vs_{mode.value}_{chunk_size_str}_{op_mode.value}.png",
         )
         create_violin_plot(
             plotting_df.filter(pl.col("operation") == op_mode.value),
             op_mode,
             mode,
             plots_dir,
-            file_name=f"violin_plot_{chunk_size}_{op_mode.value}_{mode.value}.png",
+            file_name=f"violin_plot_{chunk_size_str}_{op_mode.value}_{mode.value}.png",
         )
 
         gc.collect()

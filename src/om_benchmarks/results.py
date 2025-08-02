@@ -1,3 +1,5 @@
+import re
+import time
 from pathlib import Path
 
 import polars as pl
@@ -12,18 +14,15 @@ from om_benchmarks.utils import _uncompressed_size_from_array_shape
 class BenchmarkResultsDF:
     schema = BENCHMARK_SCHEMA
 
-    def __init__(
-        self,
-        results_dir: str | Path = RESULTS_DIR,
-        all_runs_name: str = "benchmark_results_all.parquet",
-        current_run_name: str = "benchmark_results_last.parquet",
-    ):
+    def __init__(self, results_dir: str | Path = RESULTS_DIR, base_file_name: str = "benchmark_results"):
         if not isinstance(results_dir, Path):
             results_dir = Path(results_dir)
         self.results_dir = results_dir
         self.results_dir.mkdir(exist_ok=True)
-        self.all_runs_path = self.results_dir / all_runs_name
-        self.current_run_path = self.results_dir / current_run_name
+        self.base_name = base_file_name
+        self.all_runs_path = self.results_dir / f"{self.base_name}_all.parquet"
+        # We don't set current_run_path until save because we version them with a timestamp
+        self.current_run_path = None
 
         self.df = pl.DataFrame(schema=self.schema)
 
@@ -34,6 +33,8 @@ class BenchmarkResultsDF:
     def save_results(self) -> None:
         """Save benchmark results to parquet"""
         # Save to last run parquet
+        timestamp = int(time.time())
+        self.current_run_path = self.results_dir / f"{self.base_name}_{timestamp}.parquet"
         self.df.write_parquet(self.current_run_path)
         print(f"Latest results saved to {self.current_run_path}")
 
@@ -48,10 +49,22 @@ class BenchmarkResultsDF:
         all_df.write_parquet(self.all_runs_path)
 
     def load_last_results(self):
-        """Load last benchmark results"""
-        if not self.current_run_path.exists():
-            raise FileNotFoundError(f"File {self.current_run_path} does not exist")
-        self.df = pl.read_parquet(self.current_run_path)
+        """Load the latest benchmark results file matching the pattern"""
+        pattern = re.compile(rf"{self.base_name}_(\d+)\.parquet")
+        files = list(self.results_dir.glob(f"{self.base_name}_*.parquet"))
+        # Extract timestamps and sort
+        candidates = []
+        for f in files:
+            m = pattern.match(f.name)
+            if m:
+                candidates.append((int(m.group(1)), f))
+        if not candidates:
+            raise FileNotFoundError(f"No matching results files found for pattern {self.base_name}_*.parquet")
+        # Get the file with the latest timestamp
+        latest_file = max(candidates, key=lambda x: x[0])[1]
+        self.current_run_path = latest_file
+        self.df = pl.read_parquet(latest_file)
+        print(f"Loaded latest results from {latest_file}")
 
     def prepare_for_plotting(self) -> pl.DataFrame:
         config_list = [get_config_by_hash(c) for c in self.df["config_id"].to_list()]
