@@ -47,6 +47,27 @@ class AvailableFormats(Enum):
             raise ValueError(f"Unknown format: {self.name}")
 
     @property
+    def format_order(self) -> int:
+        if self == AvailableFormats.HDF5:
+            return 3
+        elif self == AvailableFormats.HDF5Hidefix:
+            return 4
+        elif self == AvailableFormats.Zarr:
+            return 6
+        elif self == AvailableFormats.ZarrTensorStore:
+            return 7
+        elif self == AvailableFormats.ZarrPythonViaZarrsCodecs:
+            return 8
+        elif self == AvailableFormats.NetCDF:
+            return 5
+        elif self == AvailableFormats.OM:
+            return 2
+        elif self == AvailableFormats.Baseline:
+            return 1
+        else:
+            raise ValueError(f"Unknown format: {self.name}")
+
+    @property
     def reader_class(self) -> Type[BaseReader]:
         """Get the reader class for this format."""
         if self not in _reader_classes:

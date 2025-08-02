@@ -9,7 +9,6 @@ import polars as pl
 import seaborn as sns
 
 from om_benchmarks.formats import AvailableFormats
-from om_benchmarks.io.writer_configs import FormatWriterConfig
 from om_benchmarks.modes import MetricMode, OpMode
 from om_benchmarks.plotting.params import _set_matplotlib_behaviour
 
@@ -43,13 +42,13 @@ def edgecolor_and_linewidth(row_dict):
         return "red", linewidths[-1]
 
 
-def _get_label(format: AvailableFormats, config: FormatWriterConfig) -> str:
-    return f"{format.name} \n({config.normalized_plot_label})"
+def _get_label(format: AvailableFormats, compression_label: str) -> str:
+    return f"{format.name} \n({compression_label})"
 
 
 def get_marker_style(row_dict: dict[str, Any]):
     fmt = AvailableFormats(row_dict["format"])
-    label = _get_label(fmt, row_dict["config"])
+    label = _get_label(fmt, row_dict["compression_label"])
     edgecolor, linewidth = edgecolor_and_linewidth(row_dict)
     return {
         "marker": fmt.scatter_plot_marker,
@@ -58,6 +57,7 @@ def get_marker_style(row_dict: dict[str, Any]):
         "markeredgewidth": linewidth,
         "markersize": 8,
         "label": label,
+        "alpha": 0.6,
     }
 
 
@@ -131,6 +131,7 @@ def create_scatter_size_vs_mode(
                     s=80,
                     edgecolor=marker_props["markeredgecolor"],
                     linewidth=marker_props["markeredgewidth"],
+                    alpha=marker_props["alpha"],
                 )
 
             ax.set_xlabel("Compression Factor")
@@ -145,7 +146,7 @@ def create_scatter_size_vs_mode(
 
     # Add legend
     handles = []
-    df_for_legend = df.unique(subset=["config_id", "format"]).sort("format")
+    df_for_legend = df.unique(subset=["config_id", "format"]).sort("format_order", "compression_label")
     for row_dict in df_for_legend.iter_rows(named=True):
         handles.append(
             matplotlib.lines.Line2D(
@@ -201,7 +202,7 @@ def create_violin_plot(
                 rows.append(
                     {
                         "format": row_dict["format"],
-                        "label": _get_label(AvailableFormats(row_dict["format"]), row_dict["config"]),
+                        "label": _get_label(AvailableFormats(row_dict["format"]), row_dict["compression_label"]),
                         "chunk_shape": row_dict["chunk_shape"],
                         "read_index": row_dict["read_index"],
                         "sample": sample,
