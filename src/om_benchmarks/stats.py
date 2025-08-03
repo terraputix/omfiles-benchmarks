@@ -7,7 +7,7 @@ import time
 from functools import partial, wraps
 from typing import Any, Awaitable, Callable, Coroutine, NamedTuple, Union
 
-import memray
+# import memray
 
 
 class TimeMeasurement(NamedTuple):

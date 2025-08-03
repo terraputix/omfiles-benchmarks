@@ -6,8 +6,8 @@ from typing import Dict, List, Tuple, cast
 import hdf5plugin
 import numcodecs
 import numcodecs.zarr3
-import omfiles.numcodecs
 import omfiles.zarr3
+import zarr.codecs
 from hdf5plugin import Blosc as HBlosc
 from numcodecs import Blosc as NBlosc
 
@@ -52,7 +52,12 @@ CHUNKS = {
 _BASELINE_CONFIG = BaselineConfig(chunk_size=CHUNKS["small"])
 _NETCDF_BEST = NetCDFConfig(chunk_size=CHUNKS["small"], compression="zlib", compression_level=3)
 _HDF5_BEST = HDF5Config(chunk_size=CHUNKS["small"], compression=HBlosc(cname="lz4", clevel=4, shuffle=HBlosc.SHUFFLE))
-_ZARR_BEST = ZarrConfig(chunk_size=CHUNKS["small"], compressor=NBlosc(cname="lz4", clevel=4, shuffle=NBlosc.BITSHUFFLE))
+_ZARR_BEST = ZarrConfig(
+    chunk_size=CHUNKS["small"],
+    shard_size=(40, 40, 744),
+    compressor=zarr.codecs.BloscCodec(cname="lz4", clevel=4, shuffle=zarr.codecs.BloscShuffle.bitshuffle),
+    zarr_format=3,
+)
 _OM_BEST = OMConfig(chunk_size=CHUNKS["small"], compression="pfor_delta_2d", scale_factor=20, add_offset=0)
 
 _NETCDF_CONFIGS = [
@@ -81,37 +86,37 @@ _HDF5_CONFIGS = [
 ]
 
 _ZARR_CONFIGS = [
-    ZarrConfig(chunk_size=CHUNKS["small"], compressor=None),  # zarr baseline: no compression
-    ZarrConfig(chunk_size=CHUNKS["small"], compressor=numcodecs.Blosc()),
+    # ZarrConfig(chunk_size=CHUNKS["small"], compressor=None),  # zarr baseline: no compression
+    # ZarrConfig(chunk_size=CHUNKS["small"], compressor=numcodecs.Blosc()),
     _ZARR_BEST,
-    ZarrConfig(chunk_size=CHUNKS["small"], compressor=NBlosc(cname="zstd", clevel=3, shuffle=NBlosc.BITSHUFFLE)),
-    ZarrConfig(
-        zarr_format=3,
-        chunk_size=CHUNKS["small"],
-        serializer=omfiles.zarr3.PforSerializer(),  # type: ignore
-        filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
-        only_python_zarr=True,
-    ),
-    ZarrConfig(
-        zarr_format=3,
-        chunk_size=CHUNKS["small"],
-        serializer=numcodecs.zarr3.PCodec(mode_spec="auto"),
-        filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
-        only_python_zarr=True,
-    ),
-    ZarrConfig(
-        zarr_format=3,
-        chunk_size=CHUNKS["small"],
-        serializer=numcodecs.zarr3.PCodec(level=8, mode_spec="auto"),
-        filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=100, dtype="f4", astype="i4"),
-        only_python_zarr=True,
-    ),
-    ZarrConfig(
-        zarr_format=3,
-        chunk_size=CHUNKS["small"],
-        serializer=numcodecs.zarr3.PCodec(),
-        only_python_zarr=True,
-    ),
+    # ZarrConfig(chunk_size=CHUNKS["small"], compressor=NBlosc(cname="zstd", clevel=3, shuffle=NBlosc.BITSHUFFLE)),
+    # ZarrConfig(
+    #     zarr_format=3,
+    #     chunk_size=CHUNKS["small"],
+    #     serializer=omfiles.zarr3.PforSerializer(),  # type: ignore
+    #     filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
+    #     only_python_zarr=True,
+    # ),
+    # ZarrConfig(
+    #     zarr_format=3,
+    #     chunk_size=CHUNKS["small"],
+    #     serializer=numcodecs.zarr3.PCodec(mode_spec="auto"),
+    #     filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
+    #     only_python_zarr=True,
+    # ),
+    # ZarrConfig(
+    #     zarr_format=3,
+    #     chunk_size=CHUNKS["small"],
+    #     serializer=numcodecs.zarr3.PCodec(level=8, mode_spec="auto"),
+    #     filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=100, dtype="f4", astype="i4"),
+    #     only_python_zarr=True,
+    # ),
+    # ZarrConfig(
+    #     zarr_format=3,
+    #     chunk_size=CHUNKS["small"],
+    #     serializer=numcodecs.zarr3.PCodec(),
+    #     only_python_zarr=True,
+    # ),
 ]
 
 _OM_CONFIGS = [
@@ -125,20 +130,20 @@ CONFIGURATION_INVENTORY: Dict[tuple[int, int, int], List[Tuple[AvailableFormats,
         (AvailableFormats.Baseline, replace(config, chunk_size=chunk_size))
         for config in [cast(FormatWriterConfig, _BASELINE_CONFIG)]
     ]
-    + [(AvailableFormats.NetCDF, replace(config, chunk_size=chunk_size)) for config in _NETCDF_CONFIGS]
-    + [(AvailableFormats.HDF5, replace(config, chunk_size=chunk_size)) for config in _HDF5_CONFIGS]
+    # + [(AvailableFormats.NetCDF, replace(config, chunk_size=chunk_size)) for config in _NETCDF_CONFIGS]
+    # + [(AvailableFormats.HDF5, replace(config, chunk_size=chunk_size)) for config in _HDF5_CONFIGS]
     + [(AvailableFormats.Zarr, replace(config, chunk_size=chunk_size)) for config in _ZARR_CONFIGS]
-    + [
-        (AvailableFormats.ZarrTensorStore, replace(config, chunk_size=chunk_size))
-        for config in _ZARR_CONFIGS
-        if not config.only_python_zarr
-    ]
-    + [
-        (AvailableFormats.ZarrPythonViaZarrsCodecs, replace(config, chunk_size=chunk_size))
-        for config in _ZARR_CONFIGS
-        if not config.only_python_zarr
-    ]
-    + [(AvailableFormats.OM, replace(config, chunk_size=chunk_size)) for config in _OM_CONFIGS]
+    # + [
+    #     (AvailableFormats.ZarrTensorStore, replace(config, chunk_size=chunk_size))
+    #     for config in _ZARR_CONFIGS
+    #     if not config.only_python_zarr
+    # ]
+    # + [
+    #     (AvailableFormats.ZarrPythonViaZarrsCodecs, replace(config, chunk_size=chunk_size))
+    #     for config in _ZARR_CONFIGS
+    #     if not config.only_python_zarr
+    # ]
+    # + [(AvailableFormats.OM, replace(config, chunk_size=chunk_size)) for config in _OM_CONFIGS]
     for chunk_size in CHUNKS.values()
 }
 

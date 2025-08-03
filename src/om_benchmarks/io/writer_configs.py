@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Literal, Optional, Tuple, Union
 
 import h5py
 import numcodecs.abc
+import zarr.abc.codec
 from h5py._hl.filters import Gzip
 from hdf5plugin import SZ, Blosc, Blosc2
 from zarr.core.array import FiltersLike, SerializerLike
@@ -72,9 +73,10 @@ class ZarrConfig(FormatWriterConfig):
     zarr_format: int = 2
     dtype: str = "f4"
     only_python_zarr: bool = False
+    shard_size: Optional[Tuple[int, ...]] = None
 
     # Compression pipeline components
-    compressor: Optional[numcodecs.abc.Codec] | Literal["auto"] = "auto"
+    compressor: Optional[numcodecs.abc.Codec] | zarr.abc.codec.BytesBytesCodec | Literal["auto"] = "auto"
     serializer: SerializerLike = "auto"
     filter: FiltersLike = "auto"
 
@@ -83,7 +85,9 @@ class ZarrConfig(FormatWriterConfig):
         compressor_str = "auto"
         serializer_str = "auto"
         filter_str = "auto"
-        if self.compressor != "auto" and self.compressor is not None:
+        if isinstance(self.compressor, zarr.abc.codec.BytesBytesCodec):
+            compressor_str = f"{self.compressor.__class__.__name__}"
+        elif self.compressor != "auto" and self.compressor is not None:
             codec_config = self.compressor.get_config()
             compressor_str = (
                 f"{codec_config['id']} {codec_config.get('cname', 'auto')} {codec_config.get('clevel', 'auto')}"

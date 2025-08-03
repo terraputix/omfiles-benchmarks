@@ -12,10 +12,9 @@ import omfiles as om
 import tensorstore as ts
 import xarray as xr
 import zarr
+import zarrs  # noqa: F401
 from omfiles.types import BasicSelection
 from zarr.storage import LocalStore
-
-# from om_benchmarks.io.MemoryMappedStore import MemoryMappedStore
 
 
 class BaseReader(ABC):
@@ -169,9 +168,17 @@ class ZarrReader(BaseReader):
     zarr_reader: zarr.Array
 
     @classmethod
-    async def create(cls, filename: str):
+    async def create(cls, filename: str, concurrency: Optional[int] = None):
+        # # if concurrency is not None:
+        zarr.config.set(
+            {
+                "threading.max_workers": 1,
+                "async.concurrency": 1,
+            }
+        )
+        print(zarr.config.get("threading"))
+        print(zarr.config.get("async"))
         store = LocalStore(filename)
-        # store = MemoryMappedStore(filename)
         self = await super().create(filename)
         z = zarr.open(store, mode="r")
         if not isinstance(z, zarr.Group):
@@ -184,9 +191,10 @@ class ZarrReader(BaseReader):
         return self
 
     async def read(self, index: BasicSelection) -> np.ndarray:
-        return self.zarr_reader[index].__array__()
+        return (await self.zarr_reader._async_array.getitem(index)).__array__()
 
     def close(self) -> None:
+        zarr.config.reset()  # reset the config to its original state
         self.zarr_reader.store.close()
 
     @property
@@ -202,29 +210,24 @@ class ZarrsCodecsZarrReader(ZarrReader):
     zarr_reader: zarr.Array
 
     @classmethod
-    async def create(cls, filename: str):
-        import zarrs  # noqa: F401
-
+    async def create(cls, filename: str, concurrency: Optional[int] = None):
+        self = await super().create(filename, concurrency=concurrency)
         zarr.config.set(
             {
-                # "threading.num_workers": None,
-                # "array.write_empty_chunks": False,
+                "threading.max_workers": None,
                 "codec_pipeline": {
                     "path": "zarrs.ZarrsCodecPipeline",
-                    # "validate_checksums": True,
-                    # "store_empty_chunks": False,
-                    # "chunk_concurrent_minimum": 4,
-                    # "chunk_concurrent_maximum": 1,
+                    "validate_checksums": False,
+                    "chunk_concurrent_maximum": None,
+                    "chunk_concurrent_minimum": 4,
                     "batch_size": 1,
-                }
+                },
             }
         )
-        self = await super().create(filename)
-        return self
+        print(zarr.config.get("threading"))
+        print(zarr.config.get("async"))
 
-    def close(self) -> None:
-        zarr.config.reset()  # reset the config to its original state
-        super().close()
+        return self
 
 
 class TensorStoreZarrReader(BaseReader):
@@ -236,7 +239,7 @@ class TensorStoreZarrReader(BaseReader):
         # Open the Zarr file using TensorStore
         self.ts_reader = await ts.open(  # type: ignore
             {
-                "driver": "zarr",
+                "driver": "zarr3",
                 "kvstore": {
                     "driver": "file",
                     "path": str(self.filename),

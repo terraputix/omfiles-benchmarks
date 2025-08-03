@@ -5,20 +5,20 @@ description = "Benchmark omfiles against other multidimensional array file forma
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "omfiles@git+https://github.com/open-meteo/python-omfiles.git@277842338e5104f01169934372d8c58e06223874#egg=main",
+    "omfiles@git+https://github.com/open-meteo/python-omfiles.git@7148a6adc2ad3f65fc7d875943cdf05ab11f5efd#egg=main",
     "hidefix",
     "h5py",
     "netCDF4",
     # pin zarr3 because of compressor issues:
     # https://github.com/zarr-developers/zarr-python/issues/2900
-    "zarr==3.0.3",
+    "zarr",
     "zarrs",
     "tensorstore",
     "polars",
     "cdsapi",
     "typer>=0.16.0",
     "hdf5plugin>=5.1.0",
-    "memray>=1.17.2",
+    # "memray>=1.17.2",
     "matplotlib>=3.10.3",
     "seaborn>=0.13.2",
     "pcodec>=0.3.5",
