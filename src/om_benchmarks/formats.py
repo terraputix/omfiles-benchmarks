@@ -79,7 +79,7 @@ class AvailableFormats(Enum):
         elif self == AvailableFormats.ZarrTensorStore:
             library_name = "tensorstore"
         elif self == AvailableFormats.ZarrPythonViaZarrsCodecs:
-            library_name = "zarr-rs"
+            library_name = "zarrs-python"
         elif self == AvailableFormats.NetCDF:
             library_name = "netCDF4"
         elif self == AvailableFormats.OM:

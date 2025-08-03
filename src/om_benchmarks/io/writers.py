@@ -85,7 +85,7 @@ class HDF5Writer(BaseWriter[HDF5Config]):
 class ZarrWriter(BaseWriter[ZarrConfig]):
     def write(self, data: np.ndarray) -> None:
         with zarr.storage.LocalStore(str(self.filename), read_only=False) as store:
-            root = zarr.open(store, mode="w", zarr_format=self.config.zarr_format)
+            root = zarr.open(store, mode="w", zarr_format=self.config.zarr_format)  # type: ignore
             # Ensure root is a Group and not an Array (for type checker)
             if not isinstance(root, zarr.Group):
                 raise TypeError("Expected root to be a zarr.hierarchy.Group")

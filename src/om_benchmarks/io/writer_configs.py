@@ -1,13 +1,11 @@
 """Configuration classes for various data format writers."""
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, Optional, Tuple, Union
 
 import h5py
 import numcodecs.abc
-from h5py._hl.filters import Gzip
-from hdf5plugin import SZ, Blosc, Blosc2
 from zarr.core.array import FiltersLike, SerializerLike
 
 if TYPE_CHECKING:
@@ -24,12 +22,18 @@ class FormatWriterConfig(ABC):
 
     # Common configuration options across formats
     chunk_size: Tuple[int, ...]
+    label: str = ""
 
     @property
-    @abstractmethod
     def plot_label(self) -> str:
-        """Label for plotting"""
-        raise NotImplementedError
+        return self.label
+
+    # label is not pickled -> not affecting our hash
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        if "label" in state:
+            del state["label"]
+        return state
 
 
 @dataclass
@@ -37,31 +41,16 @@ class HDF5Config(FormatWriterConfig):
     """Configuration for HDF5 writer."""
 
     compression: Optional[Union[h5py.filters.FilterRefBase, Literal["gzip", "lzf", "szip"]]] = None
+    # https://docs.h5py.org/en/stable/high/dataset.html#dataset-scaleoffset
     scale_offset: Optional[int] = None
     compression_opts: Optional[tuple] = None
 
     @property
-    def plot_label(self) -> str:
-        """Pretty name of the compression"""
-        if self.compression is None:
-            return "No compression"
-        elif isinstance(self.compression, str):
-            return self.compression + str(self.compression_opts) + str(self.scale_offset)
-        elif self.compression.__class__ is Gzip:
-            return f"{self.compression.__class__.__name__} ({self.compression.filter_options[0]})"  # type: ignore
-        elif self.compression.__class__ is Blosc:
-            cname_no = self.compression.filter_options[6]  # type: ignore
-            # Reverse map the Blosc._Blosc__COMPRESSIONS dict to get the string name from the integer code
-            cname_map = {v: k for k, v in Blosc._Blosc__COMPRESSIONS.items()}  # type: ignore
-            cname = cname_map.get(cname_no, str(cname_no))
-            clevel = self.compression.filter_options[4]  # type: ignore
-            return f"{self.compression.__class__.__name__} {cname} clevel {clevel}"
-        elif self.compression.__class__ is Blosc2:
-            return f"{self.compression.__class__.__name__} ({self.compression.filter_options[0]})"  # type: ignore
-        elif self.compression.__class__ is SZ:
-            return f"{self.compression.__class__.__name__} ({self.compression.filter_options[0]})"  # type: ignore
-        else:
-            raise ValueError(f"Unknown compression type: {self.compression.__class__.__name__}")
+    def absolute_tolerance(self) -> float:
+        """Absolute tolerance for floating point values"""
+        if self.scale_offset is None:
+            return 0.0
+        return 1 / (10**self.scale_offset)
 
 
 @dataclass
@@ -78,22 +67,6 @@ class ZarrConfig(FormatWriterConfig):
     serializer: SerializerLike = "auto"
     filter: FiltersLike = "auto"
 
-    @property
-    def plot_label(self) -> str:
-        compressor_str = "auto"
-        serializer_str = "auto"
-        filter_str = "auto"
-        if self.compressor != "auto" and self.compressor is not None:
-            codec_config = self.compressor.get_config()
-            compressor_str = (
-                f"{codec_config['id']} {codec_config.get('cname', 'auto')} {codec_config.get('clevel', 'auto')}"
-            )
-        if self.serializer != "auto":
-            serializer_str = f"{self.serializer.__class__.__name__}"
-        if self.filter != "auto":
-            filter_str = f"{self.filter.__class__.__name__}"
-        return f"{compressor_str} {serializer_str} {filter_str}"
-
 
 @dataclass
 class NetCDFConfig(FormatWriterConfig):
@@ -101,15 +74,14 @@ class NetCDFConfig(FormatWriterConfig):
 
     compression: Optional[CompressionType] = None
     compression_level: Optional[CompressionLevel] = 4
+    # TODO: remove scale_factor
     scale_factor: float = 1.0
     # add_offset: float = 0.0
     significant_digits: Optional[int] = None
 
     @property
-    def plot_label(self) -> str:
-        if self.compression is None:
-            return "No compression"
-        return f"{self.compression} {self.compression_level} scale {self.scale_factor} digits {self.significant_digits}"
+    def absolute_tolerance(self) -> float:
+        return 10 ** (-self.significant_digits) if self.significant_digits is not None else 0.0
 
 
 @dataclass
@@ -120,17 +92,9 @@ class OMConfig(FormatWriterConfig):
     scale_factor: int = 100
     add_offset: int = 0
 
-    @property
-    def plot_label(self) -> str:
-        return f"{self.compression} scale {self.scale_factor} offset {self.add_offset}"
-
 
 @dataclass
 class BaselineConfig(FormatWriterConfig):
     """Configuration for Baseline mmap numpy writer (raw .npy file)."""
 
     dtype: str = "f4"
-
-    @property
-    def plot_label(self) -> str:
-        return "No compression"
