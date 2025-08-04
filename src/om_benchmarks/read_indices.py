@@ -15,6 +15,15 @@ def random_indices_for_read_range(
     return (s0, s1, s2)
 
 
+def generate_read_indices_single_range(
+    data_shape: tuple[int, int, int], read_iterations: int, read_range: tuple[int, int, int]
+) -> list[tuple[slice, slice, slice]]:
+    slices: list[tuple[slice, slice, slice]] = []
+    for _ in range(read_iterations):
+        slices.append(random_indices_for_read_range(read_range, data_shape))
+    return slices
+
+
 def generate_read_indices(
     data_shape: tuple[int, int, int], read_iterations: int, read_ranges: list[tuple[int, int, int]]
 ) -> dict[tuple[int, int, int], list[tuple[slice, slice, slice]]]:
@@ -23,9 +32,6 @@ def generate_read_indices(
     """
     read_indices: dict[tuple[int, int, int], list[tuple[slice, slice, slice]]] = {}
     for read_range in read_ranges:
-        slices: list[tuple[slice, slice, slice]] = []
-        for _ in range(read_iterations):
-            slices.append(random_indices_for_read_range(read_range, data_shape))
-        read_indices[read_range] = slices
+        read_indices[read_range] = generate_read_indices_single_range(data_shape, read_iterations, read_range)
 
     return read_indices

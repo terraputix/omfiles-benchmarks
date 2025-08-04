@@ -49,75 +49,141 @@ CHUNKS = {
     # "xtra_xtra_large": (100, 100, 744),
 }
 
-_BASELINE_CONFIG = BaselineConfig(chunk_size=CHUNKS["small"])
-_NETCDF_BEST = NetCDFConfig(chunk_size=CHUNKS["small"], compression="zlib", compression_level=3)
-_HDF5_BEST = HDF5Config(chunk_size=CHUNKS["small"], compression=HBlosc(cname="lz4", clevel=4, shuffle=HBlosc.SHUFFLE))
-_ZARR_BEST = ZarrConfig(chunk_size=CHUNKS["small"], compressor=NBlosc(cname="lz4", clevel=4, shuffle=NBlosc.BITSHUFFLE))
-_OM_BEST = OMConfig(chunk_size=CHUNKS["small"], compression="pfor_delta_2d", scale_factor=20, add_offset=0)
+_BASELINE_CONFIG = BaselineConfig(chunk_size=CHUNKS["small"], label="No compression")
+_NETCDF_BEST = NetCDFConfig(
+    chunk_size=CHUNKS["small"],
+    compression="zlib",
+    compression_level=3,
+    label="Zlib clevel 3",
+)
+_HDF5_BEST = HDF5Config(
+    chunk_size=CHUNKS["small"],
+    compression=HBlosc(cname="lz4", clevel=4, shuffle=HBlosc.SHUFFLE),
+    label="Blosc LZ4 clevel 4, Byte Shuffle",
+)
+_ZARR_BEST = ZarrConfig(
+    chunk_size=CHUNKS["small"],
+    compressor=NBlosc(cname="lz4", clevel=4, shuffle=NBlosc.BITSHUFFLE),
+    label="Blosc LZ4 clevel 4, Bit Shuffle",
+)
+_OM_BEST = OMConfig(
+    chunk_size=CHUNKS["small"],
+    compression="pfor_delta_2d",
+    scale_factor=20,
+    add_offset=0,
+    label="PFOR Delta 2D, Scale Factor 20",
+)
 
 _NETCDF_CONFIGS = [
-    NetCDFConfig(chunk_size=CHUNKS["small"], compression=None),  # netcdf baseline: no compression
-    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", significant_digits=1),
-    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", significant_digits=2),
-    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", scale_factor=1.0),
+    NetCDFConfig(chunk_size=CHUNKS["small"], compression=None, label="No Compression"),
+    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", significant_digits=1, label="SZIP, abs=0.1"),
+    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", significant_digits=2, label="SZIP, abs=0.01"),
+    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", scale_factor=1.0, label="SZIP, TODO"),
     _NETCDF_BEST,
 ]
 
 _HDF5_CONFIGS = [
-    HDF5Config(chunk_size=CHUNKS["small"]),  # hdf5 baseline: no compression
+    HDF5Config(chunk_size=CHUNKS["small"], label="No compression"),  # hdf5 baseline: no compression
     _HDF5_BEST,
     # https://hdfgroup.github.io/hdf5/develop/group___s_z_i_p.html#ga688fde8106225adf9e6ccd2a168dec74
     # https://hdfgroup.github.io/hdf5/develop/_h5_d__u_g.html#title6
     # 1st 'nn' stands for: H5_SZIP_NN_OPTION_MASK
     # 2nd 32 stands for: 32 pixels per block
-    HDF5Config(chunk_size=CHUNKS["small"], compression="szip", compression_opts=("nn", 32), scale_offset=2),
+    HDF5Config(
+        chunk_size=CHUNKS["small"],
+        compression="szip",
+        compression_opts=("nn", 32),
+        scale_offset=2,
+        label="SZIP nn 32, abs=0.01",
+    ),
     # https://hdfgroup.github.io/hdf5/develop/group___s_z_i_p.html#ga688fde8106225adf9e6ccd2a168dec74
     # https://hdfgroup.github.io/hdf5/develop/_h5_d__u_g.html#title6
     # 1st 'nn' stands for: H5_SZIP_NN_OPTION_MASK
     # 2nd 32 stands for: 32 pixels per block
-    HDF5Config(chunk_size=CHUNKS["small"], compression="szip", compression_opts=("nn", 8)),
-    HDF5Config(chunk_size=CHUNKS["small"], compression=HBlosc(cname="zstd", clevel=9, shuffle=HBlosc.SHUFFLE)),
-    HDF5Config(chunk_size=CHUNKS["small"], compression=hdf5plugin.SZ(absolute=0.01)),
+    HDF5Config(
+        chunk_size=CHUNKS["small"],
+        compression="szip",
+        compression_opts=("nn", 8),
+        label="SZIP nn 8",
+    ),
+    HDF5Config(
+        chunk_size=CHUNKS["small"],
+        compression=HBlosc(cname="zstd", clevel=9, shuffle=HBlosc.SHUFFLE),
+        label="Blosc zstd clevel 9",
+    ),
+    HDF5Config(
+        chunk_size=CHUNKS["small"],
+        compression=hdf5plugin.SZ(absolute=0.01),
+        label="SZ abs=0.01",
+    ),
 ]
 
 _ZARR_CONFIGS = [
-    ZarrConfig(chunk_size=CHUNKS["small"], compressor=None),  # zarr baseline: no compression
-    ZarrConfig(chunk_size=CHUNKS["small"], compressor=numcodecs.Blosc()),
+    ZarrConfig(
+        chunk_size=CHUNKS["small"], compressor=None, label="zarr2, No compression"
+    ),  # zarr baseline: no compression
+    ZarrConfig(
+        chunk_size=CHUNKS["small"],
+        compressor=numcodecs.Blosc(cname="lz4", clevel=5, shuffle=numcodecs.Blosc.SHUFFLE, blocksize=0),  # default
+        label="zarr2, Blosc LZ4 clevel 5",
+    ),
     _ZARR_BEST,
-    ZarrConfig(chunk_size=CHUNKS["small"], compressor=NBlosc(cname="zstd", clevel=3, shuffle=NBlosc.BITSHUFFLE)),
     ZarrConfig(
-        zarr_format=3,
         chunk_size=CHUNKS["small"],
-        serializer=omfiles.zarr3.PforSerializer(),  # type: ignore
-        filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
-        only_python_zarr=True,
+        compressor=NBlosc(cname="zstd", clevel=3, shuffle=NBlosc.BITSHUFFLE),
+        label="zarr2, Blosc zstd clevel 3",
     ),
     ZarrConfig(
         zarr_format=3,
         chunk_size=CHUNKS["small"],
-        serializer=numcodecs.zarr3.PCodec(mode_spec="auto"),
+        compressor=None,
+        serializer=omfiles.zarr3.PforSerializer(),
         filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
         only_python_zarr=True,
+        label="zarr3, PFOR, Scale Factor 20",
     ),
     ZarrConfig(
         zarr_format=3,
         chunk_size=CHUNKS["small"],
+        compressor=None,
+        serializer=numcodecs.zarr3.PCodec(mode_spec="auto"),  # TODO: verify this is the same
+        filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
+        only_python_zarr=True,
+        label="zarr3, PCodec clevel 8, Scale Factor 20",
+    ),
+    ZarrConfig(
+        zarr_format=3,
+        chunk_size=CHUNKS["small"],
+        compressor=None,
         serializer=numcodecs.zarr3.PCodec(level=8, mode_spec="auto"),
         filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=100, dtype="f4", astype="i4"),
         only_python_zarr=True,
+        label="zarr3, PCodec clevel 8, Scale Factor 100",
     ),
     ZarrConfig(
         zarr_format=3,
         chunk_size=CHUNKS["small"],
+        compressor=None,
         serializer=numcodecs.zarr3.PCodec(),
         only_python_zarr=True,
+        label="zarr3, PCodec clevel 8",
     ),
 ]
 
 _OM_CONFIGS = [
     _OM_BEST,
-    OMConfig(chunk_size=CHUNKS["small"], compression="pfor_delta_2d", scale_factor=100, add_offset=0),
-    OMConfig(chunk_size=CHUNKS["small"], compression="fpx_xor_2d"),
+    OMConfig(
+        chunk_size=CHUNKS["small"],
+        compression="pfor_delta_2d",
+        scale_factor=100,
+        add_offset=0,
+        label="PFOR Delta 2D, Scale Factor 100",
+    ),
+    OMConfig(
+        chunk_size=CHUNKS["small"],
+        compression="fpx_xor_2d",
+        label="FPX XOR 2D",
+    ),
 ]
 
 CONFIGURATION_INVENTORY: Dict[tuple[int, int, int], List[Tuple[AvailableFormats, FormatWriterConfig]]] = {

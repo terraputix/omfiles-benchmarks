@@ -47,6 +47,51 @@ class AvailableFormats(Enum):
             raise ValueError(f"Unknown format: {self.name}")
 
     @property
+    def format_order(self) -> int:
+        if self == AvailableFormats.HDF5:
+            return 3
+        elif self == AvailableFormats.HDF5Hidefix:
+            return 4
+        elif self == AvailableFormats.Zarr:
+            return 6
+        elif self == AvailableFormats.ZarrTensorStore:
+            return 7
+        elif self == AvailableFormats.ZarrPythonViaZarrsCodecs:
+            return 8
+        elif self == AvailableFormats.NetCDF:
+            return 5
+        elif self == AvailableFormats.OM:
+            return 2
+        elif self == AvailableFormats.Baseline:
+            return 1
+        else:
+            raise ValueError(f"Unknown format: {self.name}")
+
+    @property
+    def plot_label(self) -> str:
+        library_name = ""
+        if self == AvailableFormats.HDF5:
+            library_name = "h5py"
+        elif self == AvailableFormats.HDF5Hidefix:
+            library_name = "hidefix"
+        elif self == AvailableFormats.Zarr:
+            library_name = "zarr"
+        elif self == AvailableFormats.ZarrTensorStore:
+            library_name = "tensorstore"
+        elif self == AvailableFormats.ZarrPythonViaZarrsCodecs:
+            library_name = "zarrs-python"
+        elif self == AvailableFormats.NetCDF:
+            library_name = "netCDF4"
+        elif self == AvailableFormats.OM:
+            library_name = "omfiles"
+        elif self == AvailableFormats.Baseline:
+            library_name = "numpy"
+        else:
+            raise ValueError(f"Unknown format: {self.name}")
+
+        return f"\\texttt{{{library_name}}}"
+
+    @property
     def reader_class(self) -> Type[BaseReader]:
         """Get the reader class for this format."""
         if self not in _reader_classes:
