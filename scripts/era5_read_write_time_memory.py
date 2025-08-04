@@ -1,5 +1,6 @@
 import gc
 import os
+import resource
 import shutil
 import statistics
 from pathlib import Path
@@ -15,7 +16,7 @@ from om_benchmarks.configurations import (
 )
 from om_benchmarks.era5 import read_era5_data_to_temporal
 from om_benchmarks.modes import MetricMode, OpMode
-from om_benchmarks.mse import MSECache, mean_squared_error
+from om_benchmarks.mse import MSECache, mean_squared_error_destructive
 from om_benchmarks.plotting.read_write_plots import (
     create_scatter_size_vs_mode,
     create_violin_plot,
@@ -39,10 +40,8 @@ read_ranges: list[tuple[int, int, int]] = [
     (721, 1440, 1),
 ]
 
-# READ_FORMATS_PER_CHUNK_SIZE: Dict[tuple[int, int, int], List[Tuple[AvailableFormats, str]]] = {
-#     (format, register_config(replace(config, chunk_size=chunk_size)))
-#     for chunk_size, config in CONFIGURATION_INVENTORY.values()
-# }
+# Limit memory usage to prevent freezing
+resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024 * 25, 1024 * 1024 * 1024 * 25))
 
 
 @app.command()
@@ -119,10 +118,8 @@ async def main(
                     del writer
 
                     # read the data again once to calculate information loss via MSE
-                    control_data = await (await format.reader_class.create(file_path.__str__())).read(
-                        (slice(0, data_shape[0]), slice(0, data_shape[1]), slice(0, data_shape[2]))
-                    )
-                    data_mse = mean_squared_error(control_data, data)
+                    control_data = await (await format.reader_class.create(file_path.__str__())).read(...)
+                    data_mse = mean_squared_error_destructive(control_data, data)
                     del control_data
                     mse_cache.set(file_path.__str__(), data_mse)
                     gc.collect()
@@ -231,6 +228,7 @@ async def main(
         else:
             results_df.load_last_results()
 
+        results_df.print_latex_tabular()
         results_df.print_summary()
 
         plotting_df = results_df.prepare_for_plotting()

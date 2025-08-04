@@ -9,6 +9,13 @@ def mean_squared_error(original: np.ndarray, decompressed: np.ndarray) -> float:
     return float(np.mean((original - decompressed) ** 2))
 
 
+def mean_squared_error_destructive(original: np.ndarray, decompressed: np.ndarray) -> float:
+    """Will take over the original array and modify it in-place."""
+    np.subtract(original, decompressed, out=original)
+    np.square(original, out=original)
+    return float(np.mean(original))
+
+
 class MSECache:
     def __init__(self, path: Path):
         self.path = path

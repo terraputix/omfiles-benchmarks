@@ -12,7 +12,15 @@ from om_benchmarks.io.readers import (
     ZarrReader,
     ZarrsCodecsZarrReader,
 )
-from om_benchmarks.io.writers import BaselineWriter, BaseWriter, HDF5Writer, NetCDFWriter, OMWriter, ZarrWriter
+from om_benchmarks.io.writers import (
+    BaselineWriter,
+    BaseWriter,
+    HDF5Writer,
+    NetCDFWriter,
+    OMWriter,
+    XbitinfoZarrWriter,
+    ZarrWriter,
+)
 
 
 class AvailableFormats(Enum):
@@ -24,6 +32,7 @@ class AvailableFormats(Enum):
     NetCDF = "NetCDF"
     OM = "OM"
     Baseline = "Baseline"
+    XbitInfo = "XbitInfo"
 
     @property
     def file_extension(self) -> str:
@@ -43,6 +52,8 @@ class AvailableFormats(Enum):
             return ".om"
         elif self == AvailableFormats.Baseline:
             return ".mmap"
+        elif self == AvailableFormats.XbitInfo:
+            return ".zarr"
         else:
             raise ValueError(f"Unknown format: {self.name}")
 
@@ -64,6 +75,8 @@ class AvailableFormats(Enum):
             return 2
         elif self == AvailableFormats.Baseline:
             return 1
+        elif self == AvailableFormats.XbitInfo:
+            return 9
         else:
             raise ValueError(f"Unknown format: {self.name}")
 
@@ -79,13 +92,15 @@ class AvailableFormats(Enum):
         elif self == AvailableFormats.ZarrTensorStore:
             library_name = "tensorstore"
         elif self == AvailableFormats.ZarrPythonViaZarrsCodecs:
-            library_name = "zarr-rs"
+            library_name = "zarrs-python"
         elif self == AvailableFormats.NetCDF:
             library_name = "netCDF4"
         elif self == AvailableFormats.OM:
             library_name = "omfiles"
         elif self == AvailableFormats.Baseline:
             library_name = "numpy"
+        elif self == AvailableFormats.XbitInfo:
+            library_name = "xbitinfo"
         else:
             raise ValueError(f"Unknown format: {self.name}")
 
@@ -117,6 +132,7 @@ class AvailableFormats(Enum):
             AvailableFormats.NetCDF: "P",
             AvailableFormats.OM: "*",
             AvailableFormats.Baseline: "X",
+            AvailableFormats.XbitInfo: "s",
         }
         return marker_map[self]
 
@@ -127,6 +143,7 @@ _writer_classes: Dict[AvailableFormats, Type[BaseWriter]] = {
     AvailableFormats.NetCDF: NetCDFWriter,
     AvailableFormats.OM: OMWriter,
     AvailableFormats.Baseline: BaselineWriter,
+    AvailableFormats.XbitInfo: XbitinfoZarrWriter,
 }
 
 _reader_classes: Dict[AvailableFormats, Type[BaseReader]] = {
@@ -138,4 +155,5 @@ _reader_classes: Dict[AvailableFormats, Type[BaseReader]] = {
     AvailableFormats.NetCDF: NetCDFReader,
     AvailableFormats.OM: OMReader,
     AvailableFormats.Baseline: BaselineReader,
+    AvailableFormats.XbitInfo: ZarrReader,
 }

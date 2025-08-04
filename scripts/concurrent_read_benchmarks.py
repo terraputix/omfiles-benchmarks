@@ -10,13 +10,9 @@ import typer
 from om_benchmarks.configurations import _BASELINE_CONFIG, _HDF5_BEST, _OM_BEST, _ZARR_BEST, register_config
 from om_benchmarks.formats import AvailableFormats
 from om_benchmarks.io.readers import BaseReader, ZarrReader, ZarrsCodecsZarrReader
-from om_benchmarks.io.writer_configs import (
-    FormatWriterConfig,
-)
+from om_benchmarks.io.writer_configs import FormatWriterConfig
 from om_benchmarks.plotting.concurrency_plots import plot_concurrency_scaling, plot_concurrency_violin
-from om_benchmarks.read_indices import (
-    generate_read_indices_single_range,
-)
+from om_benchmarks.read_indices import generate_read_indices_single_range
 from om_benchmarks.script_utils import get_era5_path_for_hashed_config, get_script_dirs
 from om_benchmarks.stats import _clear_cache
 

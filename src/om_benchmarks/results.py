@@ -102,7 +102,8 @@ class BenchmarkResultsDF:
         """Print benchmark summary to console"""
 
         summary_df = (
-            self.df.with_columns(
+            self.prepare_for_plotting()
+            .with_columns(
                 [
                     pl.col("mean_time").round(6).alias("mean_s"),
                     pl.col("std_time").round(6).alias("std_s"),
@@ -118,6 +119,7 @@ class BenchmarkResultsDF:
                 [
                     "operation",
                     "format",
+                    "compression_label",
                     "read_index",
                     "config_id",
                     "mean_s",
@@ -130,7 +132,6 @@ class BenchmarkResultsDF:
                     "mse",
                 ]
             )
-            .sort(["operation", "mean_s"])
         )
 
         with pl.Config(tbl_cols=-1, tbl_rows=-1):  # display all columns and rows
@@ -138,3 +139,34 @@ class BenchmarkResultsDF:
             print("CURRENT BENCHMARK RESULTS")
             print("=" * 80)
             print(summary_df)
+
+    def print_latex_tabular(self) -> None:
+        """Print a LaTeX tabular of format, compression_label, size_mb, mse to stdout."""
+        df = (
+            self.prepare_for_plotting()
+            .with_columns([(pl.col("file_size_bytes") / (1024 * 1024)).alias("size_mb")])
+            .select(
+                [
+                    "format",
+                    "compression_label",
+                    "size_mb",
+                    "data_mse",
+                ]
+            )
+        )
+
+        # Print LaTeX tabular header
+        print("\\begin{tabular}{|l|l|r|r|}")
+        print("\\hline")
+        print("\\textbf{Format} & \\textbf{Compression Label} & \\textbf{Size (MB)} & \\textbf{MSE} \\\\")
+        print("\\hline")
+
+        # Print each row
+        for row in df.iter_rows():
+            # Escape LaTeX special characters in compression_label
+            format_, label, size_mb, mse = row
+            label = str(label).replace("_", "\\_")
+            print(f"{format_} & {label} & {float(size_mb):.2f} & {float(mse):.6f} \\\\")
+
+        print("\\hline")
+        print("\\end{tabular}")
