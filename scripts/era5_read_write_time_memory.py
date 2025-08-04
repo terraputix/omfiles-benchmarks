@@ -41,7 +41,7 @@ read_ranges: list[tuple[int, int, int]] = [
 ]
 
 # Limit memory usage to prevent freezing
-resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024 * 25, 1024 * 1024 * 1024 * 25))
+resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024 * 22, 1024 * 1024 * 1024 * 22))
 
 
 @app.command()

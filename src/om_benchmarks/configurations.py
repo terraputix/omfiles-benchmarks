@@ -7,7 +7,6 @@ import hdf5plugin
 import numcodecs
 import numcodecs.zarr3
 import omfiles.zarr3
-import zarr.codecs
 from hdf5plugin import Blosc as HBlosc
 from numcodecs import Blosc as NBlosc
 
@@ -203,17 +202,17 @@ CONFIGURATION_INVENTORY: Dict[tuple[int, int, int], List[Tuple[AvailableFormats,
     + [(AvailableFormats.NetCDF, replace(config, chunk_size=chunk_size)) for config in _NETCDF_CONFIGS]
     + [(AvailableFormats.HDF5, replace(config, chunk_size=chunk_size)) for config in _HDF5_CONFIGS]
     + [(AvailableFormats.Zarr, replace(config, chunk_size=chunk_size)) for config in _ZARR_CONFIGS]
-    # + [
-    #     (AvailableFormats.ZarrTensorStore, replace(config, chunk_size=chunk_size))
-    #     for config in _ZARR_CONFIGS
-    #     if not config.only_python_zarr
-    # ]
-    # + [
-    #     (AvailableFormats.ZarrPythonViaZarrsCodecs, replace(config, chunk_size=chunk_size))
-    #     for config in _ZARR_CONFIGS
-    #     if not config.only_python_zarr
-    # ]
-    # + [(AvailableFormats.OM, replace(config, chunk_size=chunk_size)) for config in _OM_CONFIGS]
+    + [
+        (AvailableFormats.ZarrTensorStore, replace(config, chunk_size=chunk_size))
+        for config in _ZARR_CONFIGS
+        if not config.only_python_zarr
+    ]
+    + [
+        (AvailableFormats.ZarrPythonViaZarrsCodecs, replace(config, chunk_size=chunk_size))
+        for config in _ZARR_CONFIGS
+        if not config.only_python_zarr
+    ]
+    + [(AvailableFormats.OM, replace(config, chunk_size=chunk_size)) for config in _OM_CONFIGS]
     for chunk_size in CHUNKS.values()
 }
 

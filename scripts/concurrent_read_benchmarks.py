@@ -7,9 +7,9 @@ from typing import List, Tuple, Type
 
 import typer
 
-from om_benchmarks.configurations import _BASELINE_CONFIG, _HDF5_BEST, _OM_BEST, _ZARR_BEST, register_config
+from om_benchmarks.configurations import _BASELINE_CONFIG, _OM_BEST, _ZARR_BEST, register_config
 from om_benchmarks.formats import AvailableFormats
-from om_benchmarks.io.readers import BaseReader, ZarrReader, ZarrsCodecsZarrReader
+from om_benchmarks.io.readers import BaseReader
 from om_benchmarks.io.writer_configs import FormatWriterConfig
 from om_benchmarks.plotting.concurrency_plots import plot_concurrency_scaling, plot_concurrency_violin
 from om_benchmarks.read_indices import generate_read_indices_single_range
@@ -50,34 +50,16 @@ def run_parallel_reads(
     reader_class: Type[BaseReader], file_path: Path, concurrency_level: int, min_iterations: int = 2000
 ) -> list[float]:
     latencies = []
-    if reader_class is ZarrsCodecsZarrReader:
-        reader = asyncio.run(reader_class.create(str(file_path), concurrency=concurrency_level))
-    else:
-        reader = asyncio.run(reader_class.create(str(file_path)))
+    reader = asyncio.run(reader_class.create(str(file_path)))
     with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency_level) as executor:
         while len(latencies) < min_iterations:
             # Each batch gives num_parallel samples
             read_indices = generate_read_indices_single_range(
                 DATA_SHAPE, read_iterations=concurrency_level, read_range=READ_RANGE
             )
-            if reader_class is ZarrsCodecsZarrReader:
 
-                async def zarr_batch():
-                    async def timed_zarr_read(read_index):
-                        t0 = time.perf_counter()
-                        await reader.read(read_index)
-                        t1 = time.perf_counter()
-                        return t1 - t0
-
-                    coroutines = [timed_zarr_read(read_indices[i]) for i in range(concurrency_level)]
-                    return await asyncio.gather(*coroutines)
-
-                batch_results = asyncio.run(zarr_batch())
-            else:
-                futures = [
-                    executor.submit(parallel_read_task, reader, read_indices[i]) for i in range(concurrency_level)
-                ]
-                batch_results = [f.result() for f in futures]
+            futures = [executor.submit(parallel_read_task, reader, read_indices[i]) for i in range(concurrency_level)]
+            batch_results = [f.result() for f in futures]
 
             # futures = [executor.submit(parallel_read_task, reader, read_indices[i]) for i in range(concurrency_level)]
             latencies.extend(batch_results)

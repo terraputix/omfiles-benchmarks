@@ -64,7 +64,7 @@ class ZarrConfig(FormatWriterConfig):
     shard_size: Optional[Tuple[int, ...]] = None
 
     # Compression pipeline components
-    compressor: Optional[numcodecs.abc.Codec] | zarr.abc.codec.BytesBytesCodec | Literal["auto"] = "auto"
+    compressor: Optional[numcodecs.abc.Codec] | Literal["auto"] = "auto"
     serializer: SerializerLike = "auto"
     filter: FiltersLike = "auto"
 
