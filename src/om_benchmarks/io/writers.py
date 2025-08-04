@@ -18,6 +18,7 @@ from om_benchmarks.io.writer_configs import (
     HDF5Config,
     NetCDFConfig,
     OMConfig,
+    XBitInfoZarrConfig,
     ZarrConfig,
 )
 
@@ -117,11 +118,31 @@ class NetCDFWriter(BaseWriter[NetCDFConfig]):
                 chunksizes=self.config.chunk_size,
                 szip_coding="nn",
                 szip_pixels_per_block=32,
-                significant_digits=self.config.significant_digits,
+                least_significant_digit=self.config.least_significant_digit,
             )
             var.scale_factor = self.config.scale_factor
             # var.add_offset = self.config.add_offset
             var[:] = data
+
+
+class XbitinfoZarrWriter(BaseWriter[XBitInfoZarrConfig]):
+    def write(self, data: np.ndarray) -> None:
+        import xarray as xr
+        from xbitinfo import get_bitinformation, get_keepbits, xr_bitround
+
+        data_vars = {
+            "dataset": (["dim0", "dim1", "dim2"], data),
+        }
+        ds = xr.Dataset(data_vars)
+
+        # Compute bitinformation
+        bitinfo = get_bitinformation(ds, "dim2", label="downloaded_dataset_bitinfo", implementation="julia")
+        keepbits = get_keepbits(bitinfo, inflevel=self.config.information_level)
+
+        # Bitround
+        ds_bitrounded = xr_bitround(ds, keepbits)
+        writer = ZarrWriter(self.filename.__str__(), self.config)
+        writer.write(ds_bitrounded["dataset"])
 
 
 class OMWriter(BaseWriter[OMConfig]):

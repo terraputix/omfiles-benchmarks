@@ -77,11 +77,16 @@ class NetCDFConfig(FormatWriterConfig):
     # TODO: remove scale_factor
     scale_factor: float = 1.0
     # add_offset: float = 0.0
-    significant_digits: Optional[int] = None
+    least_significant_digit: Optional[int] = None
 
     @property
     def absolute_tolerance(self) -> float:
-        return 10 ** (-self.significant_digits) if self.significant_digits is not None else 0.0
+        return 10 ** (-self.least_significant_digit) if self.least_significant_digit is not None else 0.0
+
+
+@dataclass
+class XBitInfoZarrConfig(ZarrConfig):
+    information_level: float = 0.99
 
 
 @dataclass

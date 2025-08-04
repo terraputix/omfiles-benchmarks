@@ -6,7 +6,6 @@ from typing import Dict, List, Tuple, cast
 import hdf5plugin
 import numcodecs
 import numcodecs.zarr3
-import omfiles.numcodecs
 import omfiles.zarr3
 from hdf5plugin import Blosc as HBlosc
 from numcodecs import Blosc as NBlosc
@@ -18,6 +17,7 @@ from om_benchmarks.io.writer_configs import (
     HDF5Config,
     NetCDFConfig,
     OMConfig,
+    XBitInfoZarrConfig,
     ZarrConfig,
 )
 
@@ -74,10 +74,17 @@ _OM_BEST = OMConfig(
     label="PFOR Delta 2D, Scale Factor 20",
 )
 
+_XBITINFO_CONFIG = XBitInfoZarrConfig(
+    chunk_size=CHUNKS["small"],
+    compressor=numcodecs.Blosc(cname="lz4", clevel=5, shuffle=numcodecs.Blosc.BITSHUFFLE, blocksize=0),
+    information_level=0.99,
+    label="zarr2, XBitInfo, 0.99 Information Level, Blosc LZ4 clevel 5, Bit Shuffle",
+)
+
 _NETCDF_CONFIGS = [
     NetCDFConfig(chunk_size=CHUNKS["small"], compression=None, label="No Compression"),
-    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", significant_digits=1, label="SZIP, abs=0.1"),
-    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", significant_digits=2, label="SZIP, abs=0.01"),
+    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", least_significant_digit=1, label="SZIP, abs=0.1"),
+    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", least_significant_digit=2, label="SZIP, abs=0.01"),
     NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", scale_factor=1.0, label="SZIP, TODO"),
     _NETCDF_BEST,
 ]
@@ -191,6 +198,7 @@ CONFIGURATION_INVENTORY: Dict[tuple[int, int, int], List[Tuple[AvailableFormats,
         (AvailableFormats.Baseline, replace(config, chunk_size=chunk_size))
         for config in [cast(FormatWriterConfig, _BASELINE_CONFIG)]
     ]
+    + [(AvailableFormats.XbitInfo, replace(config, chunk_size=chunk_size)) for config in [_XBITINFO_CONFIG]]
     + [(AvailableFormats.NetCDF, replace(config, chunk_size=chunk_size)) for config in _NETCDF_CONFIGS]
     + [(AvailableFormats.HDF5, replace(config, chunk_size=chunk_size)) for config in _HDF5_CONFIGS]
     + [(AvailableFormats.Zarr, replace(config, chunk_size=chunk_size)) for config in _ZARR_CONFIGS]
