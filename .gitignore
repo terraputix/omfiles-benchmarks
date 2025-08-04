@@ -17,3 +17,4 @@ benchmark_results/*
 .env
 
 downloaded_data.nc
+downloaded_dataset_bitinfo.json
