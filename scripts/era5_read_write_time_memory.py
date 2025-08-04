@@ -231,6 +231,7 @@ async def main(
         else:
             results_df.load_last_results()
 
+        results_df.print_latex_tabular()
         results_df.print_summary()
 
         plotting_df = results_df.prepare_for_plotting()
