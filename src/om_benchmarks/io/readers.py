@@ -142,7 +142,7 @@ class ZarrReader(BaseReader):
     zarr_reader: zarr.Array
 
     @classmethod
-    async def create(cls, filename: str, concurrency: Optional[int] = None):
+    async def create(cls, filename: str):
         store = LocalStore(filename)
         self = await super().create(filename)
         z = zarr.open(store, mode="r")
@@ -175,8 +175,8 @@ class ZarrsCodecsZarrReader(ZarrReader):
     zarr_reader: zarr.Array
 
     @classmethod
-    async def create(cls, filename: str, concurrency: Optional[int] = None):
-        self = await super().create(filename, concurrency=concurrency)
+    async def create(cls, filename: str):
+        self = await super().create(filename)
         zarr.config.set(
             {
                 "threading.max_workers": None,
@@ -189,8 +189,6 @@ class ZarrsCodecsZarrReader(ZarrReader):
                 },
             }
         )
-        print(zarr.config.get("threading"))
-        print(zarr.config.get("async"))
 
         return self
 

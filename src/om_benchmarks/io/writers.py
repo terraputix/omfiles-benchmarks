@@ -94,7 +94,6 @@ class ZarrWriter(BaseWriter[ZarrConfig]):
                 "arr_0",
                 shape=data.shape,
                 chunks=self.config.chunk_size,
-                shards=self.config.shard_size,
                 dtype=self.config.dtype,
                 compressors=self.config.compressor,
                 filters=self.config.filter,

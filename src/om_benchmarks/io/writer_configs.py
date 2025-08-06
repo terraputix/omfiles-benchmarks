@@ -61,7 +61,6 @@ class ZarrConfig(FormatWriterConfig):
     zarr_format: int = 2
     dtype: str = "f4"
     only_python_zarr: bool = False
-    shard_size: Optional[Tuple[int, ...]] = None
 
     # Compression pipeline components
     compressor: Optional[numcodecs.abc.Codec] | Literal["auto"] = "auto"
