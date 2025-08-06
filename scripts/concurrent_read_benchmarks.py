@@ -24,7 +24,7 @@ app = typer.Typer()
 
 CHUNK_SIZE = (32, 32, 32)
 DATA_SHAPE = (721, 1440, 744)
-READ_RANGE = (15, 15, 100)  # needs to access at least 6 chunks!
+READ_RANGE = (15, 15, 100)  # needs to access at least 3 chunks!
 CONCURRENCY_LEVELS = [1, 2, 4, 8, 16, 32, 64, 128]
 
 TEST_FORMAT_CONFIGS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
@@ -58,7 +58,6 @@ def run_parallel_reads(
     reader = asyncio.run(reader_class.create(str(file_path)))
     with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency_level) as executor:
         while len(latencies) < min_iterations:
-            # Each batch gives num_parallel samples
             read_indices = generate_read_indices_single_range(
                 DATA_SHAPE, read_iterations=concurrency_level, read_range=READ_RANGE
             )
