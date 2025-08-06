@@ -1,13 +1,17 @@
+# Run with GIL or without:
+# PYTHON_GIL=0 uv run scripts/concurrent_read_benchmarks.py
+# PYTHON_GIL=1 uv run scripts/concurrent_read_benchmarks.py
 import asyncio
 import concurrent.futures
 import statistics
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import List, Tuple, Type
 
 import typer
 
-from om_benchmarks.configurations import _BASELINE_CONFIG, _OM_BEST, _ZARR_BEST, register_config
+from om_benchmarks.configurations import _BASELINE_CONFIG, _HDF5_BEST, _OM_BEST, _ZARR_BEST, register_config
 from om_benchmarks.formats import AvailableFormats
 from om_benchmarks.io.readers import BaseReader
 from om_benchmarks.io.writer_configs import FormatWriterConfig
@@ -18,25 +22,26 @@ from om_benchmarks.stats import _clear_cache
 
 app = typer.Typer()
 
-# Example: test these formats/configs
+CHUNK_SIZE = (32, 32, 32)
+DATA_SHAPE = (721, 1440, 744)
+READ_RANGE = (15, 15, 100)  # needs to access at least 6 chunks!
+CONCURRENCY_LEVELS = [1, 2, 4, 8, 16, 32, 64, 128]
+
 TEST_FORMAT_CONFIGS: List[Tuple[AvailableFormats, FormatWriterConfig]] = [
     # numpy memmap as a baseline
-    (AvailableFormats.Baseline, _BASELINE_CONFIG),
-    # (AvailableFormats.HDF5, _HDF5_BEST),
-    # (AvailableFormats.ZarrPythonViaZarrsCodecs, _ZARR_BEST),
-    (AvailableFormats.Zarr, _ZARR_BEST),
-    (AvailableFormats.ZarrTensorStore, _ZARR_BEST),
+    (AvailableFormats.Baseline, replace(_BASELINE_CONFIG, chunk_size=CHUNK_SIZE)),
+    # HDF5 can still not be used with freethreaded Python
+    # https://github.com/h5py/h5py/issues/2475
+    (AvailableFormats.HDF5, replace(_HDF5_BEST, chunk_size=CHUNK_SIZE)),
+    (AvailableFormats.ZarrPythonViaZarrsCodecs, replace(_ZARR_BEST, chunk_size=CHUNK_SIZE)),
+    (AvailableFormats.Zarr, replace(_ZARR_BEST, chunk_size=CHUNK_SIZE)),
+    (AvailableFormats.ZarrTensorStore, replace(_ZARR_BEST, chunk_size=CHUNK_SIZE)),
     # NetCDF-Python will segfault when accessed concurrently: https://github.com/Unidata/netcdf4-python/issues/844
-    # (AvailableFormats.NetCDF, _NETCDF_BEST),
-    (AvailableFormats.OM, _OM_BEST),
+    # (AvailableFormats.NetCDF, replace(_NETCDF_BEST, chunk_size=CHUNK_SIZE)),
+    (AvailableFormats.OM, replace(_OM_BEST, chunk_size=CHUNK_SIZE)),
 ]
 
 TEST_FORMATS = [(format, register_config(config)) for format, config in TEST_FORMAT_CONFIGS]
-
-CHUNK_SIZE = (5, 5, 744)
-DATA_SHAPE = (721, 1440, 744)
-READ_RANGE = (60, 60, 20)  # needs to access at least 64 chunks!
-CONCURRENCY_LEVELS = [1, 2, 4, 8, 16, 32]  # 64, 128, 256, 512]
 
 
 def parallel_read_task(reader, read_index) -> float:
@@ -57,11 +62,8 @@ def run_parallel_reads(
             read_indices = generate_read_indices_single_range(
                 DATA_SHAPE, read_iterations=concurrency_level, read_range=READ_RANGE
             )
-
             futures = [executor.submit(parallel_read_task, reader, read_indices[i]) for i in range(concurrency_level)]
             batch_results = [f.result() for f in futures]
-
-            # futures = [executor.submit(parallel_read_task, reader, read_indices[i]) for i in range(concurrency_level)]
             latencies.extend(batch_results)
 
     reader.close()

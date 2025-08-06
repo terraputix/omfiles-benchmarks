@@ -50,7 +50,7 @@ def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, tuple[lis
             zorder=2,
         )
 
-    # ax.set_xscale("log", base=10)
+    ax.set_xscale("log", base=10)
     ax.set_yscale("log", base=10)
     ax.set_xlabel("Throughput (req/s)")
     ax.set_ylabel("Latency")
