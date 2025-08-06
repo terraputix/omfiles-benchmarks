@@ -588,22 +588,6 @@ wheels = [
 ]
 
 [[package]]
-name = "hidefix"
-version = "0.12.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "netcdf4" },
-    { name = "numpy" },
-    { name = "xarray" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/61/c8/9c7a462f9e241604d551fc44cc1e4979896141a9cbe98e665300e4f4d93e/hidefix-0.12.0.tar.gz", hash = "sha256:a049519ee6650f8a656aee9a9af1f140dd15bdf85bd314e3fa1855c099c211c2", size = 9154583, upload-time = "2024-10-21T13:19:44.192Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/70/b10487781293d68a2f327d75d2a55542735e54de6841b84e183b573ccc14/hidefix-0.12.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:6f1b17285e39b0c0de7fa982c13db1d4bcdbad656054f26e82201c9cf1bb530a", size = 1495442, upload-time = "2024-10-21T13:19:36.94Z" },
-    { url = "https://files.pythonhosted.org/packages/25/4e/94105ea32c6767f3f3b76d2f9580bfe661796fa54cf8ccf2af50426588ca/hidefix-0.12.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:722fdaa57e9beabe6c8f601b5a52395c8896754086f63a9ef2ef7479b2f58092", size = 9335118, upload-time = "2024-10-21T13:19:38.881Z" },
-    { url = "https://files.pythonhosted.org/packages/37/32/b775b4e394dd5b62f35bd10483460e305e952fd085f2d62b419875c3dc00/hidefix-0.12.0-cp39-abi3-win_amd64.whl", hash = "sha256:71da4677141ed6120e2033c4a2790131ed4e07ef1e4e8c1ab981c14cd8ddce90", size = 3103853, upload-time = "2024-10-21T13:19:42.004Z" },
-]
-
-[[package]]
 name = "hpack"
 version = "4.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1130,7 +1114,6 @@ dependencies = [
     { name = "cdsapi" },
     { name = "h5py" },
     { name = "hdf5plugin" },
-    { name = "hidefix" },
     { name = "matplotlib" },
     { name = "netcdf4" },
     { name = "omfiles" },
@@ -1140,6 +1123,7 @@ dependencies = [
     { name = "seaborn" },
     { name = "tensorstore" },
     { name = "typer" },
+    { name = "xarray" },
     { name = "zarr" },
     { name = "zarrs" },
 ]
@@ -1165,7 +1149,6 @@ requires-dist = [
     { name = "cdsapi" },
     { name = "h5py" },
     { name = "hdf5plugin", specifier = ">=5.1.0" },
-    { name = "hidefix" },
     { name = "julia", marker = "extra == 'julia'", specifier = ">=0.6.2" },
     { name = "matplotlib", specifier = ">=3.10.3" },
     { name = "memray", marker = "extra == 'memray'", specifier = ">=1.17.2" },
@@ -1177,6 +1160,7 @@ requires-dist = [
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "tensorstore" },
     { name = "typer", specifier = ">=0.16.0" },
+    { name = "xarray", specifier = ">=2024.10.0" },
     { name = "xbitinfo", marker = "extra == 'xbitinfo'", git = "https://github.com/observingClouds/xbitinfo?rev=main" },
     { name = "zarr", git = "https://github.com/terraputix/zarr-python.git?rev=d220542dc5c51d648fcdb8c659bbe364c5af9e80" },
     { name = "zarrs" },

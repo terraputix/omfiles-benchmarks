@@ -4,7 +4,6 @@ from typing import Dict, Type
 from om_benchmarks.io.readers import (
     BaselineReader,
     BaseReader,
-    HDF5HidefixReader,
     HDF5Reader,
     NetCDFReader,
     OMReader,
@@ -25,7 +24,6 @@ from om_benchmarks.io.writers import (
 
 class AvailableFormats(Enum):
     HDF5 = "HDF5"
-    HDF5Hidefix = "HDF5Hidefix"
     Zarr = "Zarr"
     ZarrTensorStore = "ZarrTensorStore"
     ZarrPythonViaZarrsCodecs = "ZarrPythonViaZarrsCodecs"
@@ -37,8 +35,6 @@ class AvailableFormats(Enum):
     @property
     def file_extension(self) -> str:
         if self == AvailableFormats.HDF5:
-            return ".h5"
-        elif self == AvailableFormats.HDF5Hidefix:
             return ".h5"
         elif self == AvailableFormats.Zarr:
             return ".zarr"
@@ -61,8 +57,6 @@ class AvailableFormats(Enum):
     def format_order(self) -> int:
         if self == AvailableFormats.HDF5:
             return 3
-        elif self == AvailableFormats.HDF5Hidefix:
-            return 4
         elif self == AvailableFormats.Zarr:
             return 6
         elif self == AvailableFormats.ZarrTensorStore:
@@ -85,8 +79,6 @@ class AvailableFormats(Enum):
         library_name = ""
         if self == AvailableFormats.HDF5:
             library_name = "h5py"
-        elif self == AvailableFormats.HDF5Hidefix:
-            library_name = "hidefix"
         elif self == AvailableFormats.Zarr:
             library_name = "zarr"
         elif self == AvailableFormats.ZarrTensorStore:
@@ -125,7 +117,6 @@ class AvailableFormats(Enum):
         """Get marker symbol for a format."""
         marker_map: dict[AvailableFormats, str] = {
             AvailableFormats.HDF5: "o",
-            AvailableFormats.HDF5Hidefix: "s",
             AvailableFormats.Zarr: "D",
             AvailableFormats.ZarrTensorStore: "^",
             AvailableFormats.ZarrPythonViaZarrsCodecs: "v",
@@ -148,7 +139,6 @@ _writer_classes: Dict[AvailableFormats, Type[BaseWriter]] = {
 
 _reader_classes: Dict[AvailableFormats, Type[BaseReader]] = {
     AvailableFormats.HDF5: HDF5Reader,
-    AvailableFormats.HDF5Hidefix: HDF5HidefixReader,
     AvailableFormats.Zarr: ZarrReader,
     AvailableFormats.ZarrTensorStore: TensorStoreZarrReader,
     AvailableFormats.ZarrPythonViaZarrsCodecs: ZarrsCodecsZarrReader,

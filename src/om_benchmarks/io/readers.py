@@ -10,7 +10,6 @@ import netCDF4 as nc
 import numpy as np
 import omfiles as om
 import tensorstore as ts
-import xarray as xr
 import zarr
 import zarrs  # noqa: F401
 from omfiles.types import BasicSelection
@@ -139,45 +138,11 @@ class HDF5Reader(BaseReader):
         return self.h5_reader.chunks
 
 
-class HDF5HidefixReader(BaseReader):
-    h5_reader: xr.Dataset
-
-    @classmethod
-    async def create(cls, filename: str):
-        self = await super().create(filename)
-        self.h5_reader = xr.open_dataset(self.filename, engine="hidefix")
-        return self
-
-    async def read(self, index: BasicSelection) -> np.ndarray:
-        # hidefix arrays need to be squeezed explicitly
-        return self.h5_reader["dataset"].squeeze().values
-
-    def close(self) -> None:
-        self.h5_reader.close()
-
-    @property
-    def shape(self) -> tuple[int, ...]:
-        return self.h5_reader["dataset"].shape
-
-    @property
-    def chunk_shape(self) -> Optional[tuple[int, ...]]:
-        return cast(Optional[tuple[int, ...]], self.h5_reader["dataset"].chunks)
-
-
 class ZarrReader(BaseReader):
     zarr_reader: zarr.Array
 
     @classmethod
     async def create(cls, filename: str, concurrency: Optional[int] = None):
-        # # if concurrency is not None:
-        zarr.config.set(
-            {
-                "threading.max_workers": 1,
-                "async.concurrency": 1,
-            }
-        )
-        print(zarr.config.get("threading"))
-        print(zarr.config.get("async"))
         store = LocalStore(filename)
         self = await super().create(filename)
         z = zarr.open(store, mode="r")
@@ -237,17 +202,29 @@ class TensorStoreZarrReader(BaseReader):
     async def create(cls, filename: str):
         self = await super().create(filename)
         # Open the Zarr file using TensorStore
-        self.ts_reader = await ts.open(  # type: ignore
-            {
-                "driver": "zarr3",
-                "kvstore": {
-                    "driver": "file",
-                    "path": str(self.filename),
-                },
-                "path": "arr_0",
-                "open": True,
-            }
-        )
+        config = {
+            "kvstore": {
+                "driver": "file",
+                "path": str(self.filename),
+            },
+            "path": "arr_0",
+            "open": True,
+        }
+        # try opening as zarr3 first, then as zarr2
+        try:
+            self.ts_reader = await ts.open(  # type: ignore
+                {
+                    "driver": "zarr3",
+                    **config,
+                }
+            )
+        except ValueError:
+            self.ts_reader = await ts.open(  # type: ignore
+                {
+                    "driver": "zarr2",
+                    **config,
+                }
+            )
 
         return self
 
