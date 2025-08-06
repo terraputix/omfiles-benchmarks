@@ -74,9 +74,6 @@ class NetCDFConfig(FormatWriterConfig):
 
     compression: Optional[CompressionType] = None
     compression_level: Optional[CompressionLevel] = 4
-    # TODO: remove scale_factor
-    scale_factor: float = 1.0
-    # add_offset: float = 0.0
     least_significant_digit: Optional[int] = None
 
     @property

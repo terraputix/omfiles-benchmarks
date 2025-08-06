@@ -10,12 +10,10 @@ import netCDF4 as nc
 import numpy as np
 import omfiles as om
 import tensorstore as ts
-import xarray as xr
 import zarr
+import zarrs  # noqa: F401
 from omfiles.types import BasicSelection
 from zarr.storage import LocalStore
-
-# from om_benchmarks.io.MemoryMappedStore import MemoryMappedStore
 
 
 class BaseReader(ABC):
@@ -140,38 +138,12 @@ class HDF5Reader(BaseReader):
         return self.h5_reader.chunks
 
 
-class HDF5HidefixReader(BaseReader):
-    h5_reader: xr.Dataset
-
-    @classmethod
-    async def create(cls, filename: str):
-        self = await super().create(filename)
-        self.h5_reader = xr.open_dataset(self.filename, engine="hidefix")
-        return self
-
-    async def read(self, index: BasicSelection) -> np.ndarray:
-        # hidefix arrays need to be squeezed explicitly
-        return self.h5_reader["dataset"].squeeze().values
-
-    def close(self) -> None:
-        self.h5_reader.close()
-
-    @property
-    def shape(self) -> tuple[int, ...]:
-        return self.h5_reader["dataset"].shape
-
-    @property
-    def chunk_shape(self) -> Optional[tuple[int, ...]]:
-        return cast(Optional[tuple[int, ...]], self.h5_reader["dataset"].chunks)
-
-
 class ZarrReader(BaseReader):
     zarr_reader: zarr.Array
 
     @classmethod
     async def create(cls, filename: str):
         store = LocalStore(filename)
-        # store = MemoryMappedStore(filename)
         self = await super().create(filename)
         z = zarr.open(store, mode="r")
         if not isinstance(z, zarr.Group):
@@ -184,9 +156,10 @@ class ZarrReader(BaseReader):
         return self
 
     async def read(self, index: BasicSelection) -> np.ndarray:
-        return self.zarr_reader[index].__array__()
+        return (await self.zarr_reader._async_array.getitem(index)).__array__()
 
     def close(self) -> None:
+        zarr.config.reset()  # reset the config to its original state
         self.zarr_reader.store.close()
 
     @property
@@ -203,28 +176,21 @@ class ZarrsCodecsZarrReader(ZarrReader):
 
     @classmethod
     async def create(cls, filename: str):
-        import zarrs  # noqa: F401
-
+        self = await super().create(filename)
         zarr.config.set(
             {
-                # "threading.num_workers": None,
-                # "array.write_empty_chunks": False,
+                "threading.max_workers": None,
                 "codec_pipeline": {
                     "path": "zarrs.ZarrsCodecPipeline",
-                    # "validate_checksums": True,
-                    # "store_empty_chunks": False,
-                    # "chunk_concurrent_minimum": 4,
-                    # "chunk_concurrent_maximum": 1,
+                    "validate_checksums": False,
+                    "chunk_concurrent_maximum": None,
+                    "chunk_concurrent_minimum": 4,
                     "batch_size": 1,
-                }
+                },
             }
         )
-        self = await super().create(filename)
-        return self
 
-    def close(self) -> None:
-        zarr.config.reset()  # reset the config to its original state
-        super().close()
+        return self
 
 
 class TensorStoreZarrReader(BaseReader):
@@ -234,17 +200,29 @@ class TensorStoreZarrReader(BaseReader):
     async def create(cls, filename: str):
         self = await super().create(filename)
         # Open the Zarr file using TensorStore
-        self.ts_reader = await ts.open(  # type: ignore
-            {
-                "driver": "zarr",
-                "kvstore": {
-                    "driver": "file",
-                    "path": str(self.filename),
-                },
-                "path": "arr_0",
-                "open": True,
-            }
-        )
+        config = {
+            "kvstore": {
+                "driver": "file",
+                "path": str(self.filename),
+            },
+            "path": "arr_0",
+            "open": True,
+        }
+        # try opening as zarr3 first, then as zarr2
+        try:
+            self.ts_reader = await ts.open(  # type: ignore
+                {
+                    "driver": "zarr3",
+                    **config,
+                }
+            )
+        except ValueError:
+            self.ts_reader = await ts.open(  # type: ignore
+                {
+                    "driver": "zarr2",
+                    **config,
+                }
+            )
 
         return self
 

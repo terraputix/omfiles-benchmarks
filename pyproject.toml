@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "omfiles@git+https://github.com/open-meteo/python-omfiles.git@5986b2ecc361303c5ec2e1349aeda5dcf119f44c",
-    "hidefix",
     "h5py",
     "netCDF4",
     # pin zarr3 because of compressor issues:
@@ -19,14 +18,18 @@ dependencies = [
     "cdsapi",
     "typer>=0.16.0",
     "hdf5plugin>=5.1.0",
-    "memray>=1.17.2",
     "matplotlib>=3.10.3",
     "seaborn>=0.13.2",
     "pcodec>=0.3.5",
     "python-dotenv>=1.1.1",
-    "xbitinfo@git+https://github.com/observingClouds/xbitinfo@main",
-    # "julia>=0.6.2",
+    "xarray>=2024.10.0"
 ]
+
+[project.optional-dependencies]
+memray = ["memray>=1.17.2"]
+xbitinfo = ["xbitinfo@git+https://github.com/observingClouds/xbitinfo@main"]
+julia = ["julia>=0.6.2"]
+
 
 [dependency-groups]
 dev = [

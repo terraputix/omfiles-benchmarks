@@ -120,8 +120,6 @@ class NetCDFWriter(BaseWriter[NetCDFConfig]):
                 szip_pixels_per_block=32,
                 least_significant_digit=self.config.least_significant_digit,
             )
-            var.scale_factor = self.config.scale_factor
-            # var.add_offset = self.config.add_offset
             var[:] = data
 
 

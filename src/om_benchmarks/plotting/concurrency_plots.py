@@ -13,16 +13,16 @@ from om_benchmarks.plotting.params import _set_matplotlib_behaviour
 _set_matplotlib_behaviour()
 
 
-def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, list[float]]], output_dir: Path):
+def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, tuple[list[float], float]]], output_dir: Path):
     fig, ax = plt.subplots(figsize=(7, 6))
 
     palette = sns.color_palette("colorblind", n_colors=len(results))
     format_colors = {fmt: palette[i] for i, fmt in enumerate(results.keys())}
 
-    for i, (format, res) in enumerate(results.items()):
+    for format, res in results.items():
         concurrencies = list(res.keys())
-        mean_latencies = [statistics.mean(latencies) for latencies in res.values()]
-        throughput = [c / m if m > 0 else 0 for c, m in zip(concurrencies, mean_latencies)]
+        mean_latencies = [statistics.mean(latencies) for (latencies, _) in res.values()]
+        throughput = [len(latencies) / total_time for _, (latencies, total_time) in res.items()]
         color = format_colors[format]
 
         # Draw lines between points with width scaled by concurrency
@@ -62,14 +62,14 @@ def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, list[floa
     plt.close(fig)
 
 
-def plot_concurrency_violin(results: dict[AvailableFormats, dict[int, list[float]]], output_dir: Path):
+def plot_concurrency_violin(results: dict[AvailableFormats, dict[int, tuple[list[float], float]]], output_dir: Path):
     """
     Plots a violin plot of latency distributions for each format at each concurrency level.
     """
     # Flatten results into a DataFrame
     records = []
     for fmt, conc_dict in results.items():
-        for conc, latencies in conc_dict.items():
+        for conc, (latencies, _) in conc_dict.items():
             for latency in latencies:
                 records.append(
                     {

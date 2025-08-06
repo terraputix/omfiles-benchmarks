@@ -7,8 +7,6 @@ import time
 from functools import partial, wraps
 from typing import Any, Awaitable, Callable, Coroutine, NamedTuple, Union
 
-import memray
-
 
 class TimeMeasurement(NamedTuple):
     elapsed: float
@@ -61,6 +59,8 @@ def measure_memory(
 ) -> Callable[..., Awaitable[MemoryMeasurement]]:
     @wraps(func)
     async def wrapper() -> MemoryMeasurement:
+        import memray
+
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "data.bin")
             with memray.Tracker(path, native_traces=True, trace_python_allocators=True, follow_fork=True):

@@ -137,7 +137,7 @@ def create_scatter_size_vs_mode(
             ax.set_xlabel("Compression Factor")
             ax.set_ylabel(mode.y_label)
             ax.set_yscale("log", base=mode.log_base)
-            ax.yaxis.set_major_formatter(mode.target_values_formatter)
+            # ax.yaxis.set_major_formatter(mode.target_values_formatter)
             # ax.yaxis.set_minor_formatter(mode.target_values_formatter)
             ax.minorticks_on()
             # ax.grid(which="minor", alpha=0.2)
