@@ -59,26 +59,26 @@ _NETCDF_BEST = NetCDFConfig(
 _HDF5_BEST = HDF5Config(
     chunk_size=CHUNKS["small"],
     compression=HBlosc(cname="lz4", clevel=4, shuffle=HBlosc.SHUFFLE),
-    label="Blosc LZ4 clevel 4, ByteS",
+    label="LZ4 clevel 4, ByteS",
 )
 _ZARR_BEST = ZarrConfig(
     chunk_size=CHUNKS["small"],
     compressor=NBlosc(cname="lz4", clevel=4, shuffle=NBlosc.BITSHUFFLE),
-    label="Blosc LZ4 clevel 4, BitS",
+    label="LZ4 clevel 4, BitS",
 )
 _OM_BEST = OMConfig(
     chunk_size=CHUNKS["small"],
     compression="pfor_delta_2d",
     scale_factor=20,
     add_offset=0,
-    label="PFOR Delta 2D, Scale Factor 20",
+    label="PFOR Delta 2D, ScaleX20",
 )
 
 _XBITINFO_CONFIG = XBitInfoZarrConfig(
     chunk_size=CHUNKS["small"],
     compressor=numcodecs.Blosc(cname="lz4", clevel=5, shuffle=numcodecs.Blosc.BITSHUFFLE, blocksize=0),
     information_level=0.99,
-    label="zarr2, 99% Information, Blosc LZ4 clevel 5, BitS",
+    label="zarr2, 99\% Info, LZ4 clevel 5, BitS",
 )
 
 _NETCDF_CONFIGS = [
@@ -116,7 +116,7 @@ _HDF5_CONFIGS = [
     HDF5Config(
         chunk_size=CHUNKS["small"],
         compression=HBlosc(cname="zstd", clevel=9, shuffle=HBlosc.SHUFFLE),
-        label="Blosc zstd clevel 9",
+        label="zstd clevel 9",
     ),
     HDF5Config(
         chunk_size=CHUNKS["small"],
@@ -132,13 +132,13 @@ _ZARR_CONFIGS = [
     ZarrConfig(
         chunk_size=CHUNKS["small"],
         compressor=numcodecs.Blosc(cname="lz4", clevel=5, shuffle=numcodecs.Blosc.SHUFFLE, blocksize=0),  # default
-        label="zarr2, Blosc LZ4 clevel 5",
+        label="zarr2, LZ4 clevel 5",
     ),
     _ZARR_BEST,
     ZarrConfig(
         chunk_size=CHUNKS["small"],
         compressor=NBlosc(cname="zstd", clevel=3, shuffle=NBlosc.BITSHUFFLE),
-        label="zarr2, Blosc zstd clevel 3",
+        label="zarr2, zstd clevel 3",
     ),
     ZarrConfig(
         zarr_format=3,
@@ -147,7 +147,7 @@ _ZARR_CONFIGS = [
         serializer=omfiles.zarr3.PforSerializer(),
         filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
         only_python_zarr=True,
-        label="zarr3, PFOR, Scale Factor 20",
+        label="zarr3, PFOR, ScaleX20",
     ),
     ZarrConfig(
         zarr_format=3,
@@ -156,7 +156,7 @@ _ZARR_CONFIGS = [
         serializer=numcodecs.zarr3.PCodec(mode_spec="auto"),  # TODO: verify this is the same
         filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
         only_python_zarr=True,
-        label="zarr3, PCodec clevel 8, Scale Factor 20",
+        label="zarr3, PCodec clevel 8, ScaleX20",
     ),
     ZarrConfig(
         zarr_format=3,
@@ -165,7 +165,7 @@ _ZARR_CONFIGS = [
         serializer=numcodecs.zarr3.PCodec(level=8, mode_spec="auto"),
         filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=100, dtype="f4", astype="i4"),
         only_python_zarr=True,
-        label="zarr3, PCodec clevel 8, Scale Factor 100",
+        label="zarr3, PCodec clevel 8, ScaleX100",
     ),
     ZarrConfig(
         zarr_format=3,
@@ -184,7 +184,7 @@ _OM_CONFIGS = [
         compression="pfor_delta_2d",
         scale_factor=100,
         add_offset=0,
-        label="PFOR Delta 2D, Scale Factor 100",
+        label="PFOR Delta 2D, ScaleX100",
     ),
     OMConfig(
         chunk_size=CHUNKS["small"],
@@ -215,6 +215,16 @@ CONFIGURATION_INVENTORY: Dict[tuple[int, int, int], List[Tuple[AvailableFormats,
     + [(AvailableFormats.OM, replace(config, chunk_size=chunk_size)) for config in _OM_CONFIGS]
     for chunk_size in CHUNKS.values()
 }
+
+# BEST_INVENTORY: Dict[tuple[int, int, int], List[Tuple[AvailableFormats, FormatWriterConfig]]] = {
+#     (chunk_size): [
+#         (AvailableFormats.Baseline, replace(cast(FormatWriterConfig, _BASELINE_CONFIG), chunk_size=chunk_size)),
+#         (AvailableFormats.HDF5, replace(cast(FormatWriterConfig, _HDF5_BEST), chunk_size=chunk_size)),
+#         (AvailableFormats.Zarr, replace(cast(FormatWriterConfig, _ZARR_BEST), chunk_size=chunk_size)),
+#         (AvailableFormats.OM, replace(cast(FormatWriterConfig, _OM_BEST), chunk_size=chunk_size)),
+#     ]
+#     for chunk_size in CHUNKS.values()
+# }
 
 REGISTERED_FORMAT_INVENTORY: Dict[tuple[int, int, int], List[Tuple[AvailableFormats, str]]] = {
     chunk_size: [(format, register_config(config)) for format, config in config_list]
