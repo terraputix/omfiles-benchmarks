@@ -145,7 +145,7 @@ class XbitinfoZarrWriter(BaseWriter[XBitInfoZarrConfig]):
 
 class OMWriter(BaseWriter[OMConfig]):
     def write(self, data: np.ndarray) -> None:
-        writer = om.OmFilePyWriter(str(self.filename))
+        writer = om.OmFileWriter(str(self.filename))
         variable = writer.write_array(
             data=data.__array__(),
             chunks=self.config.chunk_size,

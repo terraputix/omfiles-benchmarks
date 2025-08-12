@@ -1153,7 +1153,7 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.3" },
     { name = "memray", marker = "extra == 'memray'", specifier = ">=1.17.2" },
     { name = "netcdf4" },
-    { name = "omfiles", git = "https://github.com/open-meteo/python-omfiles.git?rev=5986b2ecc361303c5ec2e1349aeda5dcf119f44c" },
+    { name = "omfiles", git = "https://github.com/open-meteo/python-omfiles.git?rev=a116604c1d50e22036c213e9fd6b0f6d774c00e2" },
     { name = "pcodec", specifier = ">=0.3.5" },
     { name = "polars" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
@@ -1173,7 +1173,7 @@ dev = [{ name = "ruff" }]
 [[package]]
 name = "omfiles"
 version = "0.0.2"
-source = { git = "https://github.com/open-meteo/python-omfiles.git?rev=5986b2ecc361303c5ec2e1349aeda5dcf119f44c#5986b2ecc361303c5ec2e1349aeda5dcf119f44c" }
+source = { git = "https://github.com/open-meteo/python-omfiles.git?rev=a116604c1d50e22036c213e9fd6b0f6d774c00e2#a116604c1d50e22036c213e9fd6b0f6d774c00e2" }
 dependencies = [
     { name = "numpy" },
 ]

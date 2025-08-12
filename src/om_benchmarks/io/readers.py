@@ -275,13 +275,13 @@ class NetCDFReader(BaseReader):
 
 class OMReader(BaseReader):
     # om_reader: om.OmFilePyReaderAsync
-    om_reader: om.OmFilePyReader
+    om_reader: om.OmFileReader
 
     @classmethod
     async def create(cls, filename: str):
         self = await super().create(filename)
-        # self.om_reader = await om.OmFilePyReaderAsync.from_path(str(self.filename))
-        self.om_reader = om.OmFilePyReader.from_path(str(self.filename))
+        # self.om_reader = await om.OmFileReaderAsync.from_path(str(self.filename))
+        self.om_reader = om.OmFileReader.from_path(str(self.filename))
         return self
 
     async def read(self, index: BasicSelection) -> np.ndarray:

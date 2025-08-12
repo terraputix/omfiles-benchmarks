@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple, cast
 import hdf5plugin
 import numcodecs
 import numcodecs.zarr3
-import omfiles.zarr3
+import omfiles._zarr3
 from hdf5plugin import Blosc as HBlosc
 from numcodecs import Blosc as NBlosc
 
@@ -144,7 +144,7 @@ _ZARR_CONFIGS = [
         zarr_format=3,
         chunk_size=CHUNKS["small"],
         compressor=None,
-        serializer=omfiles.zarr3.PforSerializer(),
+        serializer=omfiles._zarr3.PforSerializer(),
         filter=numcodecs.zarr3.FixedScaleOffset(offset=0, scale=20, dtype="f4", astype="i4"),
         only_python_zarr=True,
         label="zarr3, PFOR, ScaleX20",

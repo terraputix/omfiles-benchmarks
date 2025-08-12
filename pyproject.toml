@@ -5,7 +5,7 @@ description = "Benchmark omfiles against other multidimensional array file forma
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "omfiles@git+https://github.com/open-meteo/python-omfiles.git@5986b2ecc361303c5ec2e1349aeda5dcf119f44c",
+    "omfiles@git+https://github.com/open-meteo/python-omfiles.git@a116604c1d50e22036c213e9fd6b0f6d774c00e2",
     "h5py",
     "netCDF4",
     # pin zarr3 because of compressor issues:
