@@ -5,6 +5,7 @@ import asyncio
 import concurrent.futures
 import statistics
 import time
+from collections import deque
 from dataclasses import replace
 from pathlib import Path
 from typing import List, Tuple, Type
@@ -54,16 +55,23 @@ def parallel_read_task(reader, read_index) -> float:
 def run_parallel_reads(
     reader_class: Type[BaseReader], file_path: Path, concurrency_level: int, min_iterations: int = 2000
 ) -> list[float]:
-    latencies = []
+    latencies: List[float] = []
     reader = asyncio.run(reader_class.create(str(file_path)))
+    read_indices = generate_read_indices_single_range(DATA_SHAPE, read_iterations=min_iterations, read_range=READ_RANGE)
+    pending = deque(read_indices)
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency_level) as executor:
-        while len(latencies) < min_iterations:
-            read_indices = generate_read_indices_single_range(
-                DATA_SHAPE, read_iterations=concurrency_level, read_range=READ_RANGE
-            )
-            futures = [executor.submit(parallel_read_task, reader, read_indices[i]) for i in range(concurrency_level)]
-            batch_results = [f.result() for f in futures]
-            latencies.extend(batch_results)
+        futures = set()
+        while pending or futures:
+            # Submit new tasks up to concurrency limit
+            while len(futures) < concurrency_level and pending:
+                idx = pending.popleft()
+                futures.add(executor.submit(parallel_read_task, reader, idx))
+
+            # Wait for at least one to complete
+            if futures:
+                done, futures = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+                latencies.extend(f.result() for f in done)
 
     reader.close()
     return latencies

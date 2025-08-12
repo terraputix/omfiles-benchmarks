@@ -12,18 +12,19 @@ from om_benchmarks.plotting.params import _set_matplotlib_behaviour
 
 _set_matplotlib_behaviour()
 
+_PALETTE = sns.color_palette("colorblind", n_colors=len(AvailableFormats))
+_FORMAT_COLORS = {fmt: _PALETTE[i] for i, fmt in enumerate(AvailableFormats)}
+_LABEL_TO_COLOR = {fmt.plot_label: _PALETTE[i] for i, fmt in enumerate(AvailableFormats)}
+
 
 def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, tuple[list[float], float]]], output_dir: Path):
     fig, ax = plt.subplots(figsize=(7, 6))
-
-    palette = sns.color_palette("colorblind", n_colors=len(results))
-    format_colors = {fmt: palette[i] for i, fmt in enumerate(results.keys())}
 
     for format, res in results.items():
         concurrencies = list(res.keys())
         mean_latencies = [statistics.mean(latencies) for (latencies, _) in res.values()]
         throughput = [len(latencies) / total_time for _, (latencies, total_time) in res.items()]
-        color = format_colors[format]
+        color = _FORMAT_COLORS[format]
 
         # Draw lines between points with width scaled by concurrency
         for j in range(1, len(concurrencies)):
@@ -91,7 +92,7 @@ def plot_concurrency_violin(results: dict[AvailableFormats, dict[int, tuple[list
         split=False,
         inner="quartile",
         log_scale=(True, False),
-        palette="colorblind",
+        palette=_LABEL_TO_COLOR,
     )
     ax.set_ylabel("Concurrency Level")
     ax.set_xlabel("Latency")

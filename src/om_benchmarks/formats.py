@@ -24,12 +24,12 @@ from om_benchmarks.io.writers import (
 
 class AvailableFormats(Enum):
     HDF5 = "HDF5"
-    Zarr = "Zarr"
-    ZarrTensorStore = "ZarrTensorStore"
-    ZarrPythonViaZarrsCodecs = "ZarrPythonViaZarrsCodecs"
-    NetCDF = "NetCDF"
     OM = "OM"
+    Zarr = "Zarr"
+    ZarrPythonViaZarrsCodecs = "ZarrPythonViaZarrsCodecs"
+    ZarrTensorStore = "ZarrTensorStore"
     Baseline = "Baseline"
+    NetCDF = "NetCDF"
     XbitInfo = "XbitInfo"
 
     @property
