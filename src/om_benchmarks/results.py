@@ -157,9 +157,9 @@ class BenchmarkResultsDF:
 
         # Print LaTeX tabular header
         print("\\begin{tabular}{|l|l|r|r|}")
-        print("\\hline")
+        print("\\toprule")
         print("\\textbf{Format} & \\textbf{Compression Label} & \\textbf{Size (MB)} & \\textbf{MSE} \\\\")
-        print("\\hline")
+        print("\\midrule")
 
         # Print each row
         for row in df.iter_rows():
@@ -167,6 +167,5 @@ class BenchmarkResultsDF:
             format_, label, size_mb, mse = row
             label = str(label).replace("_", "\\_")
             print(f"{format_} & {label} & {float(size_mb):.2f} & {float(mse):.6f} \\\\")
-
-        print("\\hline")
+        print("\\bottomrule")
         print("\\end{tabular}")
