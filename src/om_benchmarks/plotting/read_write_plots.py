@@ -158,8 +158,8 @@ def create_scatter_size_vs_mode(
         )
     fig.legend(handles=handles, loc="center right", frameon=True)
 
-    title = f"File Size vs. {mode.vs_title}"
-    subtitle = "File Chunk Shape " + str(chunk_shape)
+    title = f"Compression Factor vs. {mode.vs_title}"
+    subtitle = "File Chunk Shape " + str(tuple(chunk_shape))
     fig.suptitle(rf"\Large {title}" + "\n" + rf"\normalsize {subtitle}")
     plt.savefig(output_path)
     plt.close()
