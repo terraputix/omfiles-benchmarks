@@ -153,6 +153,7 @@ class BenchmarkResultsDF:
                     "data_mse",
                 ]
             )
+            .unique(maintain_order=True)
         )
 
         # Print LaTeX tabular header
