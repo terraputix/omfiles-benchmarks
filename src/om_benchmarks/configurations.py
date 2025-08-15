@@ -103,10 +103,6 @@ _HDF5_CONFIGS = [
         scale_offset=2,
         label="SZIP nn 32, abs=0.01",
     ),
-    # https://hdfgroup.github.io/hdf5/develop/group___s_z_i_p.html#ga688fde8106225adf9e6ccd2a168dec74
-    # https://hdfgroup.github.io/hdf5/develop/_h5_d__u_g.html#title6
-    # 1st 'nn' stands for: H5_SZIP_NN_OPTION_MASK
-    # 2nd 32 stands for: 32 pixels per block
     HDF5Config(
         chunk_size=CHUNKS["small"],
         compression="szip",
