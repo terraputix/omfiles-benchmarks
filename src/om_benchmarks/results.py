@@ -157,7 +157,7 @@ class BenchmarkResultsDF:
         )
 
         # Print LaTeX tabular header
-        print("\\begin{tabular}{|l|l|r|r|}")
+        print("\\begin{tabular}{llrr}")
         print("\\toprule")
         print("\\textbf{Format} & \\textbf{Compression Label} & \\textbf{Size (MB)} & \\textbf{MSE} \\\\")
         print("\\midrule")
