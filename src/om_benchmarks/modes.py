@@ -15,7 +15,8 @@ class MetricMode(str, Enum):
     @property
     def scatter_size_target_column(self) -> str:
         if self == MetricMode.MEMORY:
-            return "memory_peak_bytes"
+            # return "memory_peak_bytes"
+            return "memory_total_allocated_bytes"
         elif self == MetricMode.TIME:
             return "mean_time"
         else:

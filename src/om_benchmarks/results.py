@@ -111,6 +111,7 @@ class BenchmarkResultsDF:
                     pl.col("max_time").round(6).alias("max_s"),
                     pl.col("cpu_mean_time").round(6).alias("cpu_s"),
                     (pl.col("memory_peak_bytes") / 1024).round(2).alias("memory_kb"),
+                    (pl.col("memory_total_allocated_bytes") / 1024).round(2).alias("memory_transient_kb"),
                     (pl.col("file_size_bytes") / (1024 * 1024)).round(2).alias("size_mb"),
                     pl.col("data_mse").round(6).alias("mse"),
                 ]
@@ -128,6 +129,7 @@ class BenchmarkResultsDF:
                     "max_s",
                     "cpu_s",
                     "memory_kb",
+                    "memory_transient_kb",
                     "size_mb",
                     "mse",
                 ]
