@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-omfiles-rs = { git = "https://github.com/terraputix/omfiles-rs", rev = "351fe05f66b4ba423fc4a09bbfcd486e9d679a9d" }
+omfiles = { git = "https://github.com/open-meteo/rust-omfiles", rev = "fffe1f151a26ad5ab688615269260811767f32ac" }
 clap = "2.33"

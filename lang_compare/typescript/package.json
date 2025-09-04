@@ -11,6 +11,6 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@openmeteo/file-reader": "^0.0.6"
+    "@openmeteo/file-reader": "^0.0.11"
   }
 }

@@ -1,5 +1,5 @@
 use clap::{App, Arg};
-use omfiles_rs::io::reader::OmFileReader;
+use omfiles::io::reader::OmFileReader;
 use std::ops::Range;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

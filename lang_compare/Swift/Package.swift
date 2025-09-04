@@ -9,7 +9,10 @@ let package = Package(
         .executable(name: "om-swift-bm", targets: ["om-swift-bm"])
     ],
     dependencies: [
-        .package(url: "https://github.com/open-meteo/om-file-format.git", branch: "main"),
+        .package(
+            url: "https://github.com/open-meteo/om-file-format.git",
+            revision: "2dd19d4dfc473c35fd278cfa5f5728105a34806c"
+        ),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
     ],
     targets: [

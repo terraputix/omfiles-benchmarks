@@ -1,7 +1,7 @@
 import argparse
 import time
 
-from omfiles import OmFilePyReader
+from omfiles import OmFileReader
 
 
 def main():
@@ -19,7 +19,7 @@ def main():
     t = args.T
     iterations = args.ITERATIONS
 
-    om_file = OmFilePyReader.from_path(file_path)
+    om_file = OmFileReader.from_path(file_path)
     dims = om_file.shape
 
     x_max = dims[0] - x if dims[0] > x else 0
