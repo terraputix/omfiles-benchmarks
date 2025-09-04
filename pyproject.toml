@@ -10,8 +10,8 @@ dependencies = [
     "netCDF4",
     # pin zarr3 because of compressor issues:
     # https://github.com/zarr-developers/zarr-python/issues/2900
-    # "zarr==3.0.3",
-    "zarr@git+https://github.com/terraputix/zarr-python.git@d220542dc5c51d648fcdb8c659bbe364c5af9e80",
+    "zarr==3.0.3",
+    # "zarr@git+https://github.com/terraputix/zarr-python.git@d220542dc5c51d648fcdb8c659bbe364c5af9e80",
     "zarrs",
     "tensorstore",
     "polars",
