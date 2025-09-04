@@ -22,7 +22,8 @@ dependencies = [
     "seaborn>=0.13.2",
     "pcodec>=0.3.5",
     "python-dotenv>=1.1.1",
-    "xarray>=2024.10.0"
+    "xarray>=2024.10.0",
+    "pyarrow>=21.0.0",
 ]
 
 [project.optional-dependencies]
