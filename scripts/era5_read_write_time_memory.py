@@ -54,6 +54,7 @@ async def main(
 ):
     # Gather results
     results_dir, plots_dir = get_script_dirs(__file__)
+    clear_cache_string = "" if clear_cache else "_no_cache_purge"
     mse_cache = MSECache(Path(results_dir / "mse_cache.json"))
 
     measure_func = measure_memory if mode == MetricMode.MEMORY else measure_time
@@ -220,7 +221,7 @@ async def main(
 
         results_df = BenchmarkResultsDF(
             results_dir,
-            base_file_name=f"benchmark_results_{chunk_size_str}_{op_mode.value}_{mode.value}",
+            base_file_name=f"benchmark_results_{chunk_size_str}_{op_mode.value}_{mode.value}{clear_cache_string}",
         )
         if not plot_only:
             results_df.append(bm_results)
@@ -239,14 +240,14 @@ async def main(
             op_mode,
             mode,
             plots_dir,
-            file_name=f"scatter_size_vs_{mode.value}_{chunk_size_str}_{op_mode.value}.png",
+            file_name=f"scatter_size_vs_{mode.value}_{chunk_size_str}_{op_mode.value}{clear_cache_string}.png",
         )
         create_violin_plot(
             plotting_df.filter(pl.col("operation") == op_mode.value),
             op_mode,
             mode,
             plots_dir,
-            file_name=f"violin_plot_{chunk_size_str}_{op_mode.value}_{mode.value}.png",
+            file_name=f"violin_plot_{chunk_size_str}_{op_mode.value}_{mode.value}{clear_cache_string}.png",
         )
 
         gc.collect()
