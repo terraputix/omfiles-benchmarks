@@ -168,7 +168,8 @@ class BenchmarkResultsDF:
         for row in df.iter_rows():
             # Escape LaTeX special characters in compression_label
             format_, label, size_mb, mse = row
+            format = AvailableFormats(format_)
             label = str(label).replace("_", "\\_")
-            print(f"{format_} & {label} & {float(size_mb):.2f} & {float(mse):.6f} \\\\")
+            print(f"{format.plot_label} & {label} & {float(size_mb):.2f} & {float(mse):.6f} \\\\")
         print("\\bottomrule")
         print("\\end{tabular}")

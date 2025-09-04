@@ -64,7 +64,7 @@ _HDF5_BEST = HDF5Config(
 _ZARR_BEST = ZarrConfig(
     chunk_size=CHUNKS["small"],
     compressor=NBlosc(cname="lz4", clevel=4, shuffle=NBlosc.BITSHUFFLE),
-    label="LZ4 clevel 4, BitS",
+    label="zarr2, LZ4 clevel 4, BitS",
 )
 _OM_BEST = OMConfig(
     chunk_size=CHUNKS["small"],
@@ -82,10 +82,14 @@ _XBITINFO_CONFIG = XBitInfoZarrConfig(
 )
 
 _NETCDF_CONFIGS = [
-    NetCDFConfig(chunk_size=CHUNKS["small"], compression=None, label="No Compression"),
-    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", least_significant_digit=1, label="SZIP, abs=0.1"),
-    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", least_significant_digit=2, label="SZIP, abs=0.01"),
-    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", label="SZIP"),
+    NetCDFConfig(chunk_size=CHUNKS["small"], compression=None, label="No compression"),
+    NetCDFConfig(
+        chunk_size=CHUNKS["small"], compression="szip", least_significant_digit=1, label="SZIP nn 32, ScaleX10"
+    ),
+    NetCDFConfig(
+        chunk_size=CHUNKS["small"], compression="szip", least_significant_digit=2, label="SZIP nn 32, ScaleX100"
+    ),
+    NetCDFConfig(chunk_size=CHUNKS["small"], compression="szip", label="SZIP nn 32"),
     _NETCDF_BEST,
 ]
 
@@ -101,7 +105,7 @@ _HDF5_CONFIGS = [
         compression="szip",
         compression_opts=("nn", 32),
         scale_offset=2,
-        label="SZIP nn 32, abs=0.01",
+        label="SZIP nn 32, ScaleX100",
     ),
     HDF5Config(
         chunk_size=CHUNKS["small"],

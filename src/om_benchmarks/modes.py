@@ -54,6 +54,6 @@ class MetricMode(str, Enum):
         if self == MetricMode.MEMORY:
             return "Memory Usage"
         elif self == MetricMode.TIME:
-            return "Processing Time"
+            return "Average Processing Time"
         else:
             raise ValueError(f"Unknown metric mode: {self}")
