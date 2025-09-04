@@ -54,7 +54,7 @@ def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, tuple[lis
     ax.set_xscale("log", base=10)
     ax.set_yscale("log", base=10)
     ax.set_xlabel("Throughput (req/s)")
-    ax.set_ylabel("Latency")
+    ax.set_ylabel("Mean Latency")
     ax.yaxis.set_major_formatter(TIME_FORMATTER)
     ax.set_title("Throughput vs. Latency")
     ax.legend(title="Format", frameon=True, fancybox=True)

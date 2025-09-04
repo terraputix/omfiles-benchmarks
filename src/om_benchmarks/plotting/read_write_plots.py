@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 import seaborn as sns
+from numcodecs.zarr3 import math
 
 from om_benchmarks.formats import AvailableFormats
 from om_benchmarks.modes import MetricMode, OpMode
@@ -137,6 +138,13 @@ def create_scatter_size_vs_mode(
             ax.set_xlabel("Compression Factor")
             ax.set_ylabel(mode.y_label)
             ax.set_yscale("log", base=mode.log_base)
+            # fix y-axis limits so at least two major ticks are visible
+            y_min, y_max = ax.get_ylim()
+            if y_max / y_min < 50:
+                # round y_max to the nearest power of mode.log_base
+                y_max = mode.log_base ** math.ceil(math.log(y_max, mode.log_base))
+                ax.set_ylim(y_min, y_max)
+
             # ax.yaxis.set_major_formatter(mode.target_values_formatter)
             # ax.yaxis.set_minor_formatter(mode.target_values_formatter)
             ax.minorticks_on()
