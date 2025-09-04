@@ -3,6 +3,7 @@
 # PYTHON_GIL=1 uv run scripts/concurrent_read_benchmarks.py
 import asyncio
 import concurrent.futures
+import os
 import statistics
 import time
 from collections import deque
@@ -79,12 +80,16 @@ def run_parallel_reads(
 
 @app.command()
 def main():
+    gil_disabled = os.environ["PYTHON_GIL"] == "0"
+    gil_postfix = "_no_gil" if gil_disabled else ""
     _, plots_dir = get_script_dirs(__file__)
 
     # {formats: {concurrency: ([latencies], total_time)}}
     results: dict[AvailableFormats, dict[int, tuple[list[float], float]]] = {}
 
     for format, config_hash in TEST_FORMATS:
+        if format == AvailableFormats.HDF5 and gil_disabled:
+            continue
         format_results = results.get(format, {})
         file_path = get_era5_path_for_hashed_config(format, CHUNK_SIZE, config_hash)
         print(f"\nBenchmarking {format.name} scaling...")
@@ -101,8 +106,8 @@ def main():
             print(f"Concurrency {concurrency}: mean latency {mean_latency:.4f}s, throughput {throughput:.2f} req/s")
         results[format] = format_results
 
-    plot_concurrency_scaling(results, plots_dir)
-    plot_concurrency_violin(results, plots_dir)
+    plot_concurrency_scaling(results, f"{plots_dir}/concurrency_scaling{gil_postfix}.png")
+    plot_concurrency_violin(results, f"{plots_dir}/concurrency_violin{gil_postfix}.png")
 
 
 if __name__ == "__main__":

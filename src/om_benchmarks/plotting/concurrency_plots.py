@@ -1,5 +1,4 @@
 import statistics
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,7 +16,7 @@ _FORMAT_COLORS = {fmt: _PALETTE[i] for i, fmt in enumerate(AvailableFormats)}
 _LABEL_TO_COLOR = {fmt.plot_label: _PALETTE[i] for i, fmt in enumerate(AvailableFormats)}
 
 
-def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, tuple[list[float], float]]], output_dir: Path):
+def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, tuple[list[float], float]]], output_path: str):
     fig, ax = plt.subplots(figsize=(7, 6))
 
     for format, res in results.items():
@@ -54,16 +53,16 @@ def plot_concurrency_scaling(results: dict[AvailableFormats, dict[int, tuple[lis
     ax.set_xscale("log", base=10)
     ax.set_yscale("log", base=10)
     ax.set_xlabel("Throughput (req/s)")
-    ax.set_ylabel("Mean Latency")
-    ax.yaxis.set_major_formatter(TIME_FORMATTER)
+    ax.set_ylabel("Mean Latency (s)")
+    # ax.yaxis.set_major_formatter(TIME_FORMATTER)
     ax.set_title("Throughput vs. Latency")
     ax.legend(title="Format", frameon=True, fancybox=True)
     plt.tight_layout()
-    plt.savefig(f"{output_dir}/concurrency_scaling.png")
+    plt.savefig(output_path)
     plt.close(fig)
 
 
-def plot_concurrency_violin(results: dict[AvailableFormats, dict[int, tuple[list[float], float]]], output_dir: Path):
+def plot_concurrency_violin(results: dict[AvailableFormats, dict[int, tuple[list[float], float]]], output_path: str):
     """
     Plots a violin plot of latency distributions for each format at each concurrency level.
     """
@@ -100,5 +99,5 @@ def plot_concurrency_violin(results: dict[AvailableFormats, dict[int, tuple[list
     ax.xaxis.set_major_formatter(TIME_FORMATTER)
     plt.legend(title="Format", frameon=True, fancybox=True)
     plt.tight_layout()
-    plt.savefig(f"{output_dir}/concurrency_violin.png")
+    plt.savefig(output_path)
     plt.close()
