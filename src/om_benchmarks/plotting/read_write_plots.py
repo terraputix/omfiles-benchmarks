@@ -8,6 +8,7 @@ import numpy as np
 import polars as pl
 import seaborn as sns
 from numcodecs.zarr3 import math
+from numpy import isin
 
 from om_benchmarks.formats import AvailableFormats
 from om_benchmarks.modes import MetricMode, OpMode
@@ -18,18 +19,6 @@ _set_matplotlib_behaviour()
 MSE_COLUMN = "data_mse"
 
 
-# maps mse values to line widths
-line_width_mse_mapping: list[tuple[float, float]] = [
-    (0.0, 0.2),
-    (0.1, 0.4),
-    (0.2, 0.6),
-    (0.4, 0.8),
-    (0.8, 1.0),
-    (2.0, 1.5),
-    (4.0, 2.0),
-]
-
-
 def edgecolor_and_linewidth(row_dict):
     """
     Estimates edge color and line width for a given row
@@ -38,9 +27,28 @@ def edgecolor_and_linewidth(row_dict):
     lossiness = row_dict.get(MSE_COLUMN, 0.0)
     if not lossiness > 0.0:
         return "black", 0.5
-    else:
-        linewidths = [width for mse, width in line_width_mse_mapping if mse <= lossiness]
-        return "red", linewidths[-1]
+
+    mse = lossiness
+    # Define scaling range for mse values
+    min_mse = 0.00001
+    max_mse = 10.0
+    min_width = 0.1
+    max_width = 6.0
+
+    if mse <= min_mse:
+        return "red", min_width
+
+    if mse >= max_mse:
+        return "red", max_width
+
+    # Log-scale mapping preserving width range
+    log_min = np.log10(min_mse)
+    log_max = np.log10(max_mse)
+    log_value = np.log10(mse)
+    normalized = (log_value - log_min) / (log_max - log_min)
+    width = min_width + normalized * (max_width - min_width)
+
+    return "red", width
 
 
 def _get_label(format: AvailableFormats, compression_label: str) -> str:
@@ -50,15 +58,17 @@ def _get_label(format: AvailableFormats, compression_label: str) -> str:
 def get_marker_style(row_dict: dict[str, Any]):
     fmt = AvailableFormats(row_dict["format"])
     label = _get_label(fmt, row_dict["compression_label"])
+    face_color = row_dict["color"]
+    if isinstance(face_color, list) and len(face_color) >= 3:
+        face_color = [*face_color, 0.6]  # Set alpha to 0.6
     edgecolor, linewidth = edgecolor_and_linewidth(row_dict)
     return {
         "marker": fmt.scatter_plot_marker,
-        "markerfacecolor": row_dict["color"],
+        "markerfacecolor": face_color,
         "markeredgecolor": edgecolor,
         "markeredgewidth": linewidth,
         "markersize": 8,
         "label": label,
-        "alpha": 0.6,
     }
 
 
@@ -127,12 +137,11 @@ def create_scatter_size_vs_mode(
                 ax.scatter(
                     row_dict["compression_factor"],
                     row_dict[mode.scatter_size_target_column],
-                    color=marker_props["markerfacecolor"],
+                    facecolor=marker_props["markerfacecolor"],
                     marker=marker_props["marker"],
                     s=80,
                     edgecolor=marker_props["markeredgecolor"],
                     linewidth=marker_props["markeredgewidth"],
-                    alpha=marker_props["alpha"],
                 )
 
             ax.set_xlabel("Compression Factor")
