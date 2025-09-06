@@ -8,7 +8,6 @@ import numpy as np
 import polars as pl
 import seaborn as sns
 from numcodecs.zarr3 import math
-from numpy import isin
 
 from om_benchmarks.formats import AvailableFormats
 from om_benchmarks.modes import MetricMode, OpMode
